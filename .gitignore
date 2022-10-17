@@ -361,3 +361,9 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/gebco_2022_sub_ice_n35.0_s25.0_w-50.0_e-40.0.tif.ovr
+/gebco_2022_sub_ice_n35.0_s25.0_w-50.0_e-40.0.tif.aux.xml
+/eurasie.tif
+/est.tif
+/data_plus_grande.tif
+/data.tif
