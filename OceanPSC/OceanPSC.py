@@ -3,13 +3,21 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans, MiniBatchKMeans
  
-# Génération d'un jeu de donnees aléatoire
-#modèle 0 : altitude moyenne, gradien moyen, amplitude d'altitude [moy,g,delta,x,y] puis les coord
-#Coordonnees = [x,y] sur sur la terre, comment on gère le baille sphérique ?
-#données : entre altitude max et min [m,M], quelle proportion entre [m,am+bM] ect [..,M]
-#données : distanc pôle ou cmt géréer la déformation de la projection ?
+<<<<<<< HEAD
+# Generation d'un jeu de donnees alï¿½atoire
+#modele 0 : altitude moyenne, gradien moyen, amplitude d'altitude [moy,g,delta,x,y] puis les coord
+#Coordonnees = [x,y] sur sur la terre, comment on gï¿½re le baille sphï¿½rique ?
+#donnï¿½es : entre altitude max et min [m,M], quelle proportion entre [m,am+bM] ect [..,M]
+#donnï¿½es : distanc pï¿½le ou cmt gï¿½rï¿½er la dï¿½formation de la projection ?
+
+# Generation d'un jeu de donnï¿½es alï¿½atoire
+#modï¿½le 0 : altitude moyenne, gradien moyen, amplitude d'altitude [moy,g,delta,x,y] puis les coord
+#Coordonnees = [x,y] sur sur la terre, comment on gere le baille sphï¿½rique ?
+#donnï¿½es : entre altitude max et min [m,M], quelle proportion entre [m,am+bM] ect [..,M]
+#donnï¿½es : distanc pï¿½le ou cmt gï¿½rï¿½er la dï¿½formation de la projection ?
+
 # 
-data = np.random.rand(10,5) #si on veut des coeffitients dans les données il faut e faire avant -> rezize + coef car norme L2
+data = np.random.rand(10,5) #si on veut des coeffitients dans les donnï¿½es il faut e faire avant -> rezize + coef car norme L2
 nb_cluster = 3
 
 #for nb_cluster in range(3,20):
@@ -21,10 +29,15 @@ model = MiniBatchKMeans(nb_cluster,init = 'k-means++',max_iter = 100,batch_size 
 
 model.fit(data, y=None, sample_weight= None)
 
-#model.labels_ tab donnée i dans cluster model.labels_[j]
-#cluster_centers_ tab des centroides et de leurs caractéristiques
+<<<<<<< HEAD
+#model.labels_ tab donnï¿½e i dans cluster model.labels_[j]
+#cluster_centers_ tab des centroides et de leurs caractï¿½ristiques
+=======
+model.labels_ #tab donnï¿½e i dans cluster model.labels_[j]
 
-#Les caractéristiques de nos types sont les coordonnées des centroides, il serait bien d'avoir des
+>>>>>>> 5e8c93f428078b36d86ad972eff5280db8e75faf
+
+#Les caractï¿½ristiques de nos types sont les coordonnï¿½es des centroides, il serait bien d'avoir des
 #distributions satistiques pour choisir un point qui ne soit pas exactement le centroide -> plus tard
 
 print(model.inertia_)
