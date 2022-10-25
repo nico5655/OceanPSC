@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>bfd74db8-bbcc-477d-93ad-b146d9ebcdcf</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>OceanPSC.py</StartupFile>
+    <StartupFile>clustering.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -21,7 +21,20 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="OceanPSC.py" />
+    <Compile Include="clustering.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Map.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="base.py" />
+    <Compile Include="operations.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="utils.py" />
+    <Compile Include="__init__.py">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
