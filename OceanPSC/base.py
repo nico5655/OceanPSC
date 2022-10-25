@@ -43,9 +43,3 @@ print(model.inertia_)
 
 
 
-
-
-
-
-
-
