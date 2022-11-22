@@ -24,6 +24,9 @@
     <Compile Include="clustering.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Génération.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Map.py">
       <SubType>Code</SubType>
     </Compile>
