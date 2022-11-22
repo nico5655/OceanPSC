@@ -63,13 +63,16 @@ def norme(na):
     return np.sqrt(X**2 + Y**2)
 
 def normalize(grid):
+    if np.max(grid)==np.min(grid):
+        return grid/np.max(grid),np.min(grid),np.max(grid)
     b=np.min(grid)
     grid=grid-np.min(grid)
     a=np.max(grid)
     grid=grid/a
     return grid,a,b
 
-def create_indicator_grid(data,calc,reduction=(54,54)):
+def create_indicator_grid(data,calc,reduction=(54,54),normaliser=True):
     red_mean = skimage.measure.block_reduce(data, reduction, calc)
-    red_mean,red_mean_a,red_mean_b=normalize(red_mean)
-    return red_mean,red_mean_a,red_mean_b
+    if normaliser:
+        red_mean,red_mean_a,red_mean_b=normalize(red_mean)
+    return red_mean,1,0

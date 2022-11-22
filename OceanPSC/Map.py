@@ -29,9 +29,9 @@ class Map(object):
         data = utils.load_data(path)
         return Map(data)
 
-    def indicator_grid(self,calc,transformation=lambda x: x.data, reduce=(54,54)):
+    def indicator_grid(self,calc,transformation=lambda x: x.data, reduce=(54,54),normaliser=True):
         data_t=transformation(self)
-        k,_,_ = op.create_indicator_grid(data_t,calc,reduce)
+        k,_,_ = op.create_indicator_grid(data_t,calc,reduce,normaliser)
         return k
 
     def get_indicators_data(self,indicators, reduce=(54,54)):
