@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>bfd74db8-bbcc-477d-93ad-b146d9ebcdcf</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>base.py</StartupFile>
+    <StartupFile>Generation.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
