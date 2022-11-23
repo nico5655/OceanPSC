@@ -12,20 +12,18 @@ from mpl_toolkits import mplot3d
 import numpy as np
 import matplotlib.pyplot as plt
 from OceanPSC.Map import Map
+from mpl_toolkits import mplot3d
 
-# On prend une carte avec les continents, on genere les fonds en
-# 1-Donnant un type a chaque tuile
-# 2-Generant les fronti�res
-# 3-Generant les tuiles
+#On prend une carte avec les continents, on genere les fonds en
+#1-Donnant un type a chaque tuile
+#2-Generant les fronti�res
+#3-Generant les tuiles
+taille_tuile = 50
+hauteur = 10
+largeur = 30
 
-taille_tuile = 10
-hauteur = 30
-largeur = 10
-
-Carte = Map(-np.inf * np.ones((largeur * taille_tuile, hauteur * taille_tuile)))
-Liste_types = [(-100, 10, 200)]  # Listes de tous les types, et de ses caract�ristiques
-
-
+Carte = Map(-np.inf * np.ones((hauteur * taille_tuile,largeur * taille_tuile)))
+Liste_types = [(-100,10,200)] #Listes de tous les types, et de ses caract�ristiques
 def trouver_Ocean(Carte):
     # retourne les tuiles sur lesquelles il faut generer
     return Carte.indicator_grid(
@@ -105,5 +103,17 @@ if __name__ == "__main__":
     i, j = 3, 4
     genere_tuile(Carte, Tab_types, i, j, Tuile_a_generer, Liste_types)
     plt.imshow(Carte.data)
+    plt.show()
+
+    n,m = Carte.data.shape
+    x = np.linspace(0,50,50)
+    y = np.linspace(0,50,50)
+    X, Y = np.meshgrid(x, y)
+    fig = plt.figure()
+    ax = plt.axes(projection='3d')
+    p = ax.plot_surface(X, Y, Carte.data[i * 50:i * 50 + 50,j * 50:j * 50 + 50].T, cmap ='winter')
+    fig.colorbar(p)
+    plt.show()
+    
     plt.show()
     show3d(Carte.data)
