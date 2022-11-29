@@ -13,6 +13,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from OceanPSC.Map import Map
 from mpl_toolkits import mplot3d
+from matplotlib import cm
+from matplotlib.colors import LightSource
 
 #On prend une carte avec les continents, on genere les fonds en
 #1-Donnant un type a chaque tuile
@@ -23,7 +25,7 @@ taille_tuile = 2**resolution
 hauteur = 5
 largeur = 5
 Carte = Map(-1000 * np.ones((largeur * taille_tuile,hauteur* taille_tuile)))
-Liste_types = [(-1000,10,200),(-500,20,100)] #Listes de tous les types, et de ses caract�ristiques alt moy, grad moy, amplitude min/max
+Liste_types = [(-1000,10,200),(-750,20,100),(-750,20,300),(-1100,20,100)] #Listes de tous les types, et de ses caract�ristiques alt moy, grad moy, amplitude min/max
 def trouver_Ocean(Carte):
     # retourne les tuiles sur lesquelles il faut generer
     return Carte.indicator_grid(
@@ -47,7 +49,7 @@ def genere_bords(Carte, Tab_types, Tuile_a_generer, Liste_types):
             )  # choix de 0.05 arbitraire
         Carte.data[l * taille_tuile][h * taille_tuile] = alt
 
-    def profil(h, l, t1, t2, dir):
+    def profil(l,h, t1, t2, dir):
         alt_moy = Liste_types[t1][0] * (
             0.5 + (np.random.rand() * 2 - 1) / 10
         ) + Liste_types[t2][0] * (0.5 + (np.random.rand() * 2 - 1) / 10)
@@ -79,6 +81,40 @@ def genere_bords(Carte, Tab_types, Tuile_a_generer, Liste_types):
             profil(l, h, t1, t2, (1, 0))
             profil(l, h, t1, t4, (0, 1))
 
+
+
+def genere_alt_moyennes(Carte,Tab_types):
+    n,m=Tab_types.shape
+    alt_moy=np.zeros((n,m))
+    alt_moy_etendue=np.zeros((n+1,m+1))
+    for k in range((len(Liste_types))):
+        alt_moy[Tab_types==k]=Liste_types[k][0]
+    alt_moy_etendue[:-1,:-1]=alt_moy
+    alt_moy_etendue[-1,:]=alt_moy_etendue[-2,:]
+    alt_moy_etendue[:,-1]=alt_moy_etendue[:,-2]
+
+    def S(x):
+        return 3 * x * x - 2 * x * x * x
+
+
+    #Pseudo-random numbers, entre -1,1
+    def a(i,j):
+        return alt_moy_etendue[i,j]
+
+    #Noise local : donne la valeur  en (x,y) de la fonction lisse qui relie les 4 points (i,j) ,...,(i+1,j+1)
+    def N(x,y):
+
+        i,j = np.int32(np.trunc(x)),np.int32(np.trunc(y))
+        return a(i,j) + (a(i+1,j) - a(i,j)) * S(x - i) + (a(i,j+1) - a(i,j)) * S(y - j) + (a(i,j) - a(i,j+1) - a(i+1,j) + a(i+1,j+1)) * S(x - i) * S(y - j)
+
+    I=np.arange(0,n*taille_tuile)
+    J=np.arange(0,m*taille_tuile)
+    I,J=np.meshgrid(I,J)
+    Carte.data=N(I/taille_tuile,J/taille_tuile)
+    plt.imshow(Carte.data,cmap='terrain')
+    plt.show()
+
+
 def genere_tuile(Carte,type_tuile,i_tuile,j_tuile):
     
     altitude_moyenne = type_tuile[0]
@@ -90,18 +126,19 @@ def genere_tuile(Carte,type_tuile,i_tuile,j_tuile):
     def S(x):
         return 3 * x * x - 2 * x * x * x
 
-    Tab_reseau = np.random.rand(taille_tuile*2,taille_tuile*2)*2-np.ones((taille_tuile*2,taille_tuile*2))
+    Tab_reseau = 2*np.random.rand(taille_tuile*2,taille_tuile*2)-1
 
 
     #on pourrait mettre un facteur sqrt2 plutot que 2 dans le dimentionnement
     Terrain =  np.zeros((taille_tuile,taille_tuile))
     #Pseudo-random numbers, entre -1,1
     def a(i,j):
-        return Tab_reseau[i][j]
+        return Tab_reseau[i,j]
 
     #Noise local : donne la valeur  en (x,y) de la fonction lisse qui relie les 4 points (i,j) ,...,(i+1,j+1)
     def N(x,y):
-        i,j = int(x),int(y)
+
+        i,j = np.int32(np.trunc(x)),np.int32(np.trunc(y))
         return a(i,j) + (a(i+1,j) - a(i,j)) * S(x - i) + (a(i,j+1) - a(i,j)) * S(y - j) + (a(i,j) - a(i,j+1) - a(i+1,j) + a(i+1,j+1)) * S(x - i) * S(y - j)
 
     #Génératrice du terrain en (i,j) de la tuile
@@ -109,9 +146,9 @@ def genere_tuile(Carte,type_tuile,i_tuile,j_tuile):
     theta = np.pi/3
     cosinus = np.cos(theta)
     sinus = np.sin(theta)
-
+    
     def f(i,j): #a valeur dans -2,2
-        result = 0
+        result = np.zeros((taille_tuile,taille_tuile))
         p = 1
         x = i/taille_tuile
         y = j/taille_tuile
@@ -121,15 +158,18 @@ def genere_tuile(Carte,type_tuile,i_tuile,j_tuile):
             x , y = 0.5 + cosinus * (x-0.5) - sinus * (y-0.5) , 0.5 + cosinus * (y-0.5) + sinus * (x-0.5)
             #rotation de centre le milieu du carré tuile
         return result
+    
     def g(i,j):
-        i_m,j_m = min(i,taille_tuile-i-1), min(j,taille_tuile-j-1)
+        i_m,j_m = np.minimum(i,taille_tuile-i-1), np.minimum(j,taille_tuile-j-1)
         return i_m*j_m/(taille_tuile/2-1)**2
 
-    for i in range(taille_tuile):
-        for j in range(taille_tuile):
-            i_carte = i_tuile + i
-            j_carte = j_tuile + j
-            Carte.data[i_carte,j_carte] =  0.25*amplitude_altitude * f(i,j)*g(i,j) + altitude_moyenne #+bonne moyenne continue
+    I=np.arange(0,taille_tuile)
+    J=np.arange(0,taille_tuile)
+    I,J=np.meshgrid(I,J)
+
+    i_carte = i_tuile + I
+    j_carte = j_tuile + J
+    Carte.data[i_carte,j_carte] +=  0.25*amplitude_altitude * f(I,J)*g(I,J) #+bonne moyenne continue
 
 #le résultat n'est pas incroyable, peut etre il faut garder les ^mêmes nombre aléatoire et simplement en rajouter ?
 
@@ -137,25 +177,32 @@ def show3d(map2):
     x = np.linspace(0, hauteur * taille_tuile, hauteur * taille_tuile)
     y = np.linspace(0, largeur * taille_tuile, largeur * taille_tuile)
     X, Y = np.meshgrid(x, y)
-    fig = plt.figure()
-    ax = plt.axes(projection="3d")
-    ax.set_xlim3d(0, hauteur * taille_tuile)
-    ax.set_ylim3d(0, largeur * taille_tuile)
-    p = ax.plot_surface(X, Y, map2, cmap="winter")
-    fig.colorbar(p)
+
+    fig, ax = plt.subplots(subplot_kw=dict(projection='3d'))
+
+    ls = LightSource(270, 45)
+    # To use a custom hillshading mode, override the built-in shading and pass
+    # in the rgb colors of the shaded surface calculated from "shade".
+    rgb = ls.shade(map2, cmap=cm.gist_earth, vert_exag=0.1, blend_mode='soft')
+    surf = ax.plot_surface(X,Y, map2, rstride=5, cstride=5, facecolors=rgb,
+                           linewidth=0, antialiased=False, shade=True)
+    fig.colorbar(surf)
     plt.show()
 
 
 if __name__ == "__main__":
     Tuile_a_generer = trouver_Ocean(Carte)
-    Tab_types = attribution_types(Carte, Liste_types)
+    #Tab_types = attribution_types(Carte, Liste_types)
 
     genere_tuile(Carte, Liste_types[0], 0, 0)
-    for i in range(3,6):
-        for j in range(3,6):
-            genere_tuile(Carte, Liste_types[0],taille_tuile//2*i , taille_tuile//2*j)
+    Tab_types=np.int32(np.trunc(np.random.rand(5,5)*len(Liste_types)))
+    genere_alt_moyennes(Carte,Tab_types)
 
-    plt.imshow(Carte.data)
+    for i in range(9):
+        for j in range(9):
+            genere_tuile(Carte, Liste_types[Tab_types[i//2,j//2]],taille_tuile//2*i , taille_tuile//2*j)
+
+    plt.imshow(Carte.data, cmap='terrain')
     plt.show()
     """
     n,m = Carte.data.shape
