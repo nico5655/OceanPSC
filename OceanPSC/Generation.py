@@ -20,11 +20,10 @@ from mpl_toolkits import mplot3d
 #3-Generant les tuiles
 resolution = 7
 taille_tuile = 2**resolution
-hauteur = 2
-largeur = 3
-
+hauteur = 5
+largeur = 5
 Carte = Map(-1000 * np.ones((largeur * taille_tuile,hauteur* taille_tuile)))
-Liste_types = [(-1000,10,200)] #Listes de tous les types, et de ses caract�ristiques
+Liste_types = [(-1000,10,200),(-500,20,100)] #Listes de tous les types, et de ses caract�ristiques alt moy, grad moy, amplitude min/max
 def trouver_Ocean(Carte):
     # retourne les tuiles sur lesquelles il faut generer
     return Carte.indicator_grid(
@@ -45,7 +44,7 @@ def genere_bords(Carte, Tab_types, Tuile_a_generer, Liste_types):
         for t in T:
             alt += Liste_types[t][0] * (
                 0.25 + (np.random.rand() * 2 - 1) / 20
-            )  # choix de 0.1 arbitraire
+            )  # choix de 0.05 arbitraire
         Carte.data[l * taille_tuile][h * taille_tuile] = alt
 
     def profil(h, l, t1, t2, dir):
@@ -80,12 +79,11 @@ def genere_bords(Carte, Tab_types, Tuile_a_generer, Liste_types):
             profil(l, h, t1, t2, (1, 0))
             profil(l, h, t1, t4, (0, 1))
 
-def genere_tuile(Carte,Tab_types,i_tuile,j_tuile,Liste_types):
+def genere_tuile(Carte,type_tuile,i_tuile,j_tuile):
     
-    indice = int(Tab_types[i_tuile][j_tuile])
-    altitude_moyenne = Liste_types[indice][0]
-    gradient_moyen = Liste_types[indice][1]
-    amplitude_altitude = Liste_types[indice][2]
+    altitude_moyenne = type_tuile[0]
+    gradient_moyen = type_tuile[1]
+    amplitude_altitude = type_tuile[2]
         
 
     #Smooth Step function
@@ -94,10 +92,6 @@ def genere_tuile(Carte,Tab_types,i_tuile,j_tuile,Liste_types):
 
     Tab_reseau = np.random.rand(taille_tuile*2,taille_tuile*2)*2-np.ones((taille_tuile*2,taille_tuile*2))
 
-    Tab_reseau[0][0] = (Carte.data[i_tuile*taille_tuile][j_tuile*taille_tuile]-altitude_moyenne)/amplitude_altitude
-    Tab_reseau[1][0] = (Carte.data[i_tuile*taille_tuile+1][j_tuile*taille_tuile]-altitude_moyenne)/amplitude_altitude
-    Tab_reseau[0][1] = (Carte.data[i_tuile*taille_tuile][j_tuile*taille_tuile+1]-altitude_moyenne)/amplitude_altitude
-    Tab_reseau[1][1] = (Carte.data[i_tuile*taille_tuile+1][j_tuile*taille_tuile+1]-altitude_moyenne)/amplitude_altitude
 
     #on pourrait mettre un facteur sqrt2 plutot que 2 dans le dimentionnement
     Terrain =  np.zeros((taille_tuile,taille_tuile))
@@ -116,7 +110,7 @@ def genere_tuile(Carte,Tab_types,i_tuile,j_tuile,Liste_types):
     cosinus = np.cos(theta)
     sinus = np.sin(theta)
 
-    def f(i,j):
+    def f(i,j): #a valeur dans -2,2
         result = 0
         p = 1
         x = i/taille_tuile
@@ -127,15 +121,17 @@ def genere_tuile(Carte,Tab_types,i_tuile,j_tuile,Liste_types):
             x , y = 0.5 + cosinus * (x-0.5) - sinus * (y-0.5) , 0.5 + cosinus * (y-0.5) + sinus * (x-0.5)
             #rotation de centre le milieu du carré tuile
         return result
+    def g(i,j):
+        i_m,j_m = min(i,taille_tuile-i-1), min(j,taille_tuile-j-1)
+        return i_m*j_m/(taille_tuile/2-1)**2
 
     for i in range(taille_tuile):
         for j in range(taille_tuile):
-            i_carte = taille_tuile * i_tuile + i
-            j_carte = taille_tuile * j_tuile + j
-            if Carte.data[i_carte,j_carte] == -1000:
-                Carte.data[i_carte,j_carte] =  0.25*amplitude_altitude * f(i,j) + altitude_moyenne
+            i_carte = i_tuile + i
+            j_carte = j_tuile + j
+            Carte.data[i_carte,j_carte] =  0.25*amplitude_altitude * f(i,j)*g(i,j) + altitude_moyenne #+bonne moyenne continue
 
-
+#le résultat n'est pas incroyable, peut etre il faut garder les ^mêmes nombre aléatoire et simplement en rajouter ?
 
 def show3d(map2):
     x = np.linspace(0, hauteur * taille_tuile, hauteur * taille_tuile)
@@ -153,10 +149,12 @@ def show3d(map2):
 if __name__ == "__main__":
     Tuile_a_generer = trouver_Ocean(Carte)
     Tab_types = attribution_types(Carte, Liste_types)
-    genere_bords(Carte, Tab_types, Tuile_a_generer, Liste_types)
-    i, j = 2, 1
-    genere_tuile(Carte, Tab_types, i, j, Liste_types)
-    genere_tuile(Carte, Tab_types, 0, 0, Liste_types)
+
+    genere_tuile(Carte, Liste_types[0], 0, 0)
+    for i in range(3,6):
+        for j in range(3,6):
+            genere_tuile(Carte, Liste_types[0],taille_tuile//2*i , taille_tuile//2*j)
+
     plt.imshow(Carte.data)
     plt.show()
     """
