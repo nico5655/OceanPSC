@@ -42,7 +42,7 @@ terrain = 600*utils.f(X/2000, Y/2000)+600
 # Snapshotting parameters. Only needed for generating the simulation
 # timelapse.
 enable_snapshotting = True
-my_dir = r"C:\Users\Mohamed Amine\Desktop\erosion"
+my_dir = r"../"
 snapshot_dir = os.path.join(my_dir, 'sim_snaps')
 snapshot_file_template = 'sim-%05d.png'
 if enable_snapshotting:
@@ -52,7 +52,15 @@ if enable_snapshotting:
         pass
 
 
-def erosion(terrain, enable_snapshotting=True):
+def erosion(terrain, enable_snapshotting=False):
+
+    dim=terrain.shape[0]
+    shape=terrain.shape
+    cell_width = full_width / dim
+    cell_area = cell_width ** 2
+    x = np.linspace(19*full_width, 20*full_width, dim)
+    y = np.linspace(19*full_width, 20*full_width, dim)
+    X, Y = np.meshgrid(x, y)
 
     Min = np.ndarray.min(terrain)
     Max = np.ndarray.max(terrain)
@@ -98,7 +106,6 @@ def erosion(terrain, enable_snapshotting=True):
 
         # Compute the normalized gradient of the terrain height to determine where
         # water and sediment will be moving.
-        gradient = np.zeros_like(terrain, dtype='complex')
         gradient = utils.simple_gradient(terrain)
         gradient = np.select([np.abs(gradient) < 1e-10],
                              [np.exp(2j * np.pi * np.random.rand(*shape))],
@@ -149,14 +156,14 @@ def erosion(terrain, enable_snapshotting=True):
         if enable_snapshotting:
             output_path = os.path.join(
                 snapshot_dir, snapshot_file_template % i)
-            # utils.save_as_png(utils.normalize(terrain), output_path)
+            utils.save_as_png(utils.normalize(terrain), output_path)
 
             np.save(
-                r"C:\Users\Mohamed Amine\Desktop\erosion\sim_snaps\simulation"+str(i+1), Min + terrain*(Max-Min))
+                r"../"+str(i+1), Min + terrain*(Max-Min))
     terrain = Min + terrain*(Max-Min)
     return terrain
 
-
+"""
 plt.imshow(terrain,cmap="terrain")
 plt.colorbar()
 plt.show()
@@ -170,7 +177,7 @@ plt.imshow(terrain,cmap="terrain")
 plt.colorbar()
 plt.show()
 
-np.save('simulation', terrain)
+np.save('simulation', terrain)"""
 # myFile = np.load(r"C:\Users\Mohamed Amine\Desktop\erosion\code\simulation.npy")
 # utils.save_as_png(
 # 
