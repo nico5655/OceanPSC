@@ -166,7 +166,9 @@ def genere_tuile(Carte,type_tuile,i_tuile,j_tuile):
 
     i_carte = i_tuile + I
     j_carte = j_tuile + J
-    Carte.data[i_carte,j_carte] +=  0.25 * amplitude_altitude * f(I,J) * g(I,J) #+bonne moyenne continue
+    alpha=1/2
+    omega=2
+    Carte.data[i_carte,j_carte] +=  amplitude_altitude * perlin(I,J,alpha,omega) #+bonne moyenne continue
 
 #le résultat n'est pas incroyable, peut etre il faut garder les ^mêmes nombre
 #aléatoire et simplement en rajouter ?
@@ -195,9 +197,9 @@ if __name__ == "__main__":
     Tab_types = np.int32(np.trunc(np.random.rand(hauteur,largeur) * len(Liste_types)))
     genere_alt_moyennes(Carte,Tab_types)
 
-    for i in range(2 * hauteur - 1):
-        for j in range(2 * largeur - 1):
-            genere_tuile(Carte, Liste_types[Tab_types[i // 2,j // 2]],taille_tuile // 2 * i , taille_tuile // 2 * j)
+    for i in range(hauteur):
+        for j in range(largeur):
+            genere_tuile(Carte, Liste_types[Tab_types[i,j]],taille_tuile*i , taille_tuile * j)
 
     plt.imshow(Carte.data, cmap='terrain')
     plt.show()
