@@ -56,7 +56,7 @@ def erosion(terrain, enable_snapshotting=False):
 
     dim=terrain.shape[0]
     shape=terrain.shape
-    cell_width = full_width / dim
+    cell_width = full_width / dim 
     cell_area = cell_width ** 2
     x = np.linspace(19*full_width, 20*full_width, dim)
     y = np.linspace(19*full_width, 20*full_width, dim)
@@ -64,7 +64,7 @@ def erosion(terrain, enable_snapshotting=False):
 
     Min = np.ndarray.min(terrain)
     Max = np.ndarray.max(terrain)
-
+     
     terrain = utils.normalize(terrain)
 
     # Water-related constants
@@ -73,7 +73,7 @@ def erosion(terrain, enable_snapshotting=False):
 
     # Slope constants
     min_height_delta = 0.05
-    repose_slope = 0.03
+    repose_slope = 0.1
     gravity = 30.0
     gradient_sigma = 0.5
 
@@ -84,7 +84,7 @@ def erosion(terrain, enable_snapshotting=False):
 
     # The numer of iterations is proportional to the grid dimension. This is to
     # allow changes on one side of the grid to affect the other side.
-    iterations = int(1.4 * dim)
+    iterations = int(0.4 * dim)
 
     # `terrain` represents the actual terrain height we're interested in
     # terrain = utils.fbm(shape, -2.0)
@@ -161,6 +161,12 @@ def erosion(terrain, enable_snapshotting=False):
             np.save(
                 r"../"+str(i+1), Min + terrain*(Max-Min))
     terrain = Min + terrain*(Max-Min)
+
+    
+    output_path = os.path.join(
+        snapshot_dir, "sim-final.png")
+    utils.save_as_png(utils.normalize(terrain), output_path)
+    print(terrain.shape,np.max(terrain),np.min(terrain),np.max(terrain)-np.min(terrain))
     return terrain
 
 """

@@ -35,6 +35,9 @@
     <Compile Include="operations.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="perlin.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="utils.py" />
     <Compile Include="__init__.py">
       <SubType>Code</SubType>
