@@ -202,4 +202,35 @@ def Laplacien(x, y):
         S += carte[x][y+1]
     return S-4*carte[x][y]
 
+def water_source(terrain, center, radius, flow):
+  (lx,ly) =terrain.shape
+  water = np.zeros((lx,ly))
+  for x in range(max(0,center[0]-radius),min(lx,center[0]+radius)):
+    for y in range(max(0,center[1]-radius),min(ly,center[1]+radius)):
+      if (x-center[0])*(x-center[0])+(y-center[1])*(y-center[1])<=radius*radius:
+        water[x][y]+= flow
+  return water
+
+def water_line(terrain, start, end, thickness, flow):
+  (lx,ly) =terrain.shape
+  water = np.zeros((lx,ly))
+  (sx,sy)=start
+  (ex,ey)=end
+  for x in range(max(min(sx-thickness,ex-thickness),0),min(max(sx+thickness,ex+thickness),lx)):
+    for y in range(max(min(sy-thickness,ey-thickness),0),min(max(sy+thickness,ey+thickness),ly)):
+      a=sy-ey
+      b=sx-ex
+      c=-a*ex+b*ey
+      if abs(a*x-b*y+c)<=np.sqrt(a*a+b*b)*thickness:
+        water[x][y]+= flow
+  return water
+
+def water_polyline(terrain, polyline, thickness, flow):
+  (lx,ly) =terrain.shape
+  water = np.zeros((lx,ly))
+  for i in range(len(polyline)-1):
+    start = polyline[i]
+    end = polyline[i+1]
+    water += water_line(terrain, start, end, thickness, flow)
+  return water
 
