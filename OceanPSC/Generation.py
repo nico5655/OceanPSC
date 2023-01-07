@@ -42,43 +42,6 @@ def attribution_types(Carte, Types):
     return Tab_types
 
 
-def genere_bords(Carte, Tab_types, Tuile_a_generer, Liste_types):
-    def altitude(l, h, T):
-        alt = 0
-        for t in T:
-            alt += Liste_types[t][0] * (0.25 + (np.random.rand() * 2 - 1) / 20)  # choix de 0.05 arbitraire
-        Carte.data[l * taille_tuile][h * taille_tuile] = alt
-
-    def profil(l,h, t1, t2, dir):
-        alt_moy = Liste_types[t1][0] * (0.5 + (np.random.rand() * 2 - 1) / 10) + Liste_types[t2][0] * (0.5 + (np.random.rand() * 2 - 1) / 10)
-        grad_moy = Liste_types[t1][1] * (0.5 + (np.random.rand() * 2 - 1) / 10) + Liste_types[t2][1] * (0.5 + (np.random.rand() * 2 - 1) / 10)
-        min_max = Liste_types[t1][2] * (0.5 + (np.random.rand() * 2 - 1) / 10) + Liste_types[t2][2] * (0.5 + (np.random.rand() * 2 - 1) / 10)
-
-    # Plus précisément, si la fonction est de classe C k \mathcal C^{k}, ses
-    # coefficients de Fourier sont négligeables devant 1 / n k {\displaystyle
-    # 1/n^{k}}
-    # on genere un profil aleatoire par serie de fourier, avec un profil C2
-
-    for h in range(hauteur):
-        for l in range(largeur):
-            t1 = Tab_types[l][h]
-            t2 = Tab_types[l][h - 1]
-            t3 = Tab_types[l - 1][h - 1]
-            t4 = Tab_types[l - 1][h]
-            altitude(l, h, (t1, t2, t3, t4))
-            # on genere l'altitude en chacun des points intersecion de 4 tuiles
-            # a partir des types des 4 tuiles
-
-
-    for h in range(hauteur):
-        for l in range(largeur):
-            t1 = Tab_types[l][h]
-            t2 = Tab_types[l][h - 1]
-            t4 = Tab_types[l - 1][h]
-            profil(l, h, t1, t2, (1, 0))
-            profil(l, h, t1, t4, (0, 1))
-
-
 
 def genere_alt_moyennes(Carte,Tab_types):
     n,m = Tab_types.shape
