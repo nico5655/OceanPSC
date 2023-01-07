@@ -4,13 +4,14 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>bfd74db8-bbcc-477d-93ad-b146d9ebcdcf</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>Generation.py</StartupFile>
+    <StartupFile>perlin.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <Name>OceanPSC</Name>
     <RootNamespace>OceanPSC</RootNamespace>
+    <IsWindowsApplication>False</IsWindowsApplication>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
