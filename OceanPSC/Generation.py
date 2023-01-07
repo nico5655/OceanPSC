@@ -16,6 +16,8 @@ from mpl_toolkits import mplot3d
 from matplotlib import cm
 import utils
 from matplotlib.colors import LightSource
+from Erosion import erosion
+from perlin import perlin
 
 #On prend une carte avec les continents, on genere les fonds en
 #1-Donnant un type a chaque tuile
@@ -23,8 +25,8 @@ from matplotlib.colors import LightSource
 #3-Generant les tuiles
 resolution = 7
 taille_tuile = 2 ** resolution
-hauteur = 5
-largeur = 5
+hauteur = 2
+largeur = 2
 Carte = Map(-1000 * np.ones((largeur * taille_tuile,hauteur * taille_tuile)))
 Liste_types = [(-1000,10,200),(-850,20,100),(-850,20,400),(-1100,20,200)] #Listes de tous les types, et de ses caract�ristiques alt moy, grad moy,
                                                                           #amplitude min/max
@@ -116,59 +118,19 @@ def genere_tuile(Carte,type_tuile,i_tuile,j_tuile):
     altitude_moyenne = type_tuile[0]
     gradient_moyen = type_tuile[1]
     amplitude_altitude = type_tuile[2]
-        
 
-    #Smooth Step function
-    def S(x):
-        return 3 * x * x - 2 * x * x * x
+    #I = np.arange(0,taille_tuile)
+    #J = np.arange(0,taille_tuile)
+    #I,J = np.meshgrid(I,J)
 
-    Tab_reseau = 2 * np.random.rand(taille_tuile * 2,taille_tuile * 2) - 1
-
-
-    #on pourrait mettre un facteur sqrt2 plutot que 2 dans le dimentionnement
-    Terrain = np.zeros((taille_tuile,taille_tuile))
-    #Pseudo-random numbers, entre -1,1
-    def a(i,j):
-        return Tab_reseau[i,j]
-
-    #Noise local : donne la valeur en (x,y) de la fonction lisse qui relie les
-    #4 points (i,j) ,...,(i+1,j+1)
-    def N(x,y):
-
-        i,j = np.int32(np.trunc(x)),np.int32(np.trunc(y))
-        return a(i,j) + (a(i + 1,j) - a(i,j)) * S(x - i) + (a(i,j + 1) - a(i,j)) * S(y - j) + (a(i,j) - a(i,j + 1) - a(i + 1,j) + a(i + 1,j + 1)) * S(x - i) * S(y - j)
-
-    #Génératrice du terrain en (i,j) de la tuile
-
-    theta = np.pi / 3
-    cosinus = np.cos(theta)
-    sinus = np.sin(theta)
-    
-    def f(i,j): #a valeur dans -2,2
-        result = np.zeros((taille_tuile,taille_tuile))
-        p = 1
-        x = i / taille_tuile
-        y = j / taille_tuile
-        for  k in range(resolution):
-            result += N(p * x,p * y) / p
-            p *= 2
-            x , y = 0.5 + cosinus * (x - 0.5) - sinus * (y - 0.5) , 0.5 + cosinus * (y - 0.5) + sinus * (x - 0.5)
-            #rotation de centre le milieu du carré tuile
-        return result
-    
-    def g(i,j):
-        i_m,j_m = np.minimum(i,taille_tuile - i - 1), np.minimum(j,taille_tuile - j - 1)
-        return i_m * j_m / (taille_tuile / 2 - 1) ** 2
-
-    I = np.arange(0,taille_tuile)
-    J = np.arange(0,taille_tuile)
-    I,J = np.meshgrid(I,J)
-
-    i_carte = i_tuile + I
-    j_carte = j_tuile + J
+    #i_carte = i_tuile + I
+    #j_carte = j_tuile + J
     alpha=1/2
     omega=2
-    Carte.data[i_carte,j_carte] +=  amplitude_altitude * perlin(I,J,alpha,omega) #+bonne moyenne continue
+    for i in range(taille_tuile):
+        for j in range(taille_tuile):
+            i_carte,j_carte = i_tuile+i,j_tuile+j
+            Carte.data[i_carte,j_carte] +=  amplitude_altitude * perlin(i_carte,j_carte,alpha,omega) #+bonne moyenne continue
 
 #le résultat n'est pas incroyable, peut etre il faut garder les ^mêmes nombre
 #aléatoire et simplement en rajouter ?
@@ -213,10 +175,9 @@ if __name__ == "__main__":
     p = ax.plot_surface(X, Y, Carte.data[i * 50:i * 50 + 50,j * 50:j * 50 + 50].T, cmap ='winter')
     fig.colorbar(p)
     plt.show()"""
-    from Erosion import erosion
 
-    #show3d(Carte.data)
-    Carte.data=erosion(Carte.data)
-    output_path = "sim-final.png"
-    plt.imsave(output_path,Carte.data,cmap='gray')
+    show3d(Carte.data)
+    #Carte.data=erosion(Carte.data)
+    #output_path = "sim-final.png"
+    #plt.imsave(output_path,Carte.data,cmap='gray')
 
