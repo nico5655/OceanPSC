@@ -6,58 +6,66 @@ from time import time
 
 np.random.seed(1001)
 Vec = np.random.rand(256,256,2)
-V = 2*np.random.rand(256,256)-1
+V = 2 * np.random.rand(256,256) - 1
 #Px = np.random.permutation(256)
 #Py = np.random.permutation(256)
-for i in range(256):
-    for j in range(256):
-        Vec[i][j] /= np.sqrt(np.sum(Vec[i][j]**2)) #normalisation
+Vec = (Vec.T / np.sqrt(np.sum(Vec ** 2,axis=-1)).T).T
+
 
 def Smooth(t):
     return t * t * t * (t * (t * 6 - 15) + 10)
     #return 3*t*t-t*t*t
-
 def Val(x,y): #valeurs aux neouds
-    return V[x%256][y%256]
+    return V[x % 256,y % 256]
 
 def Vecteur(x,y):
-    return Vec[x%256][y%256]
+    a = Vec[x % 256,y % 256]
+    return a
 
 def Bruit(x,y):
-    X,Y = int(x),int(y)
+    if x is float:
+        x=np.array([x])
+        y=np.array([y])
+
+    X,Y = np.int32(x),np.int32(y)
     x,y = x - X,y - Y
     sx,sy = Smooth(x), Smooth(y)
-    bruit = 0
-    bruit += (1-sx)*(1-sy)*(Val(X,Y)+np.dot(Vecteur(X,Y),[x,y]))
-    bruit += sx*(1-sy)*(Val(X+1,Y)+np.dot(Vecteur(X+1,Y),[x-1,y]))
-    bruit += (1-sx)*sy*(Val(X,Y+1)+np.dot(Vecteur(X,Y+1),[x,y-1]))
-    bruit += sx*sy*(Val(X+1,Y+1)+np.dot(Vecteur(X+1,Y+1),[x-1,y-1]))
 
+    bruit = 0
+    bruit += (1 - sx) * (1 - sy) * (Val(X,Y) + np.sum(Vecteur(X,Y) * np.array([x.T,y.T]).T,axis=-1))
+    bruit += sx * (1 - sy) * (Val(X + 1,Y) + np.sum(Vecteur(X + 1,Y) * np.array([x.T - 1,y.T]).T,axis=-1))
+    bruit += (1 - sx) * sy * (Val(X,Y + 1) + np.sum(Vecteur(X,Y + 1) * np.array([x.T,y.T - 1]).T,axis=-1))
+    bruit += sx * sy * (Val(X + 1,Y + 1) + np.sum(Vecteur(X + 1,Y + 1) * np.array([x.T - 1,y.T - 1]).T,axis=-1))
     return bruit
 
 def perlin(x,y,alpha,omega,n=10):
     N = 0
     a = 1
-    z = x+y*1j
+    z = x + y * 1j
     for k in range(n):
-        N += a*Bruit(z.real,z.imag)
+        N += a * Bruit(z.real,z.imag)
         z *= omega
         a *= alpha
     return N
 
 def afficher(n):
     t_1 = time()
-    alpha = 1/2
+    alpha = 1 / 2
     omega = 2
-    carte = [[perlin(i/50,j/50,alpha,omega,8) for i in range(n)] for j in range(n)]
-    print(time()-t_1)
+    i = np.arange(n)
+    j = np.arange(n)
+    I,J = np.meshgrid(i,j)
+    carte = perlin(J / 50,I / 50,alpha,omega,8)
+    print(time() - t_1)
+    """t_1 = time()
+    carte=np.array([[perlin(i/50,j/50,alpha,omega,8) for i in range(n)] for j in range(n)])
+    print(time() - t_1)"""
     plt.imshow(carte, cmap='terrain')
     plt.show()
     #show3d(carte)
-
 afficher(200)
 
-#C'est lent : on peut surement accélérer en faisant les opérations sur tout le tableau avec numpy, optimiser les paramètres et le code 
-#Plusieurs pistes d'amélioration : le choix des vecteurs aléatoire, on peut faire autre chose que %256 pour que ca ne boucle pas
-#-un bruit 3D projeté comme dans l'article Better Gradient Noise, Andrew Kensler, Aaron Knoll and Peter Shirley,UUSCI-2008-001
-#-Comme dans l'article State of the Art in Procedural Noise Functions, on peut orienter le bruit, et le modifier de plusieurs manières.
+#C'est lent : on peut surement accï¿½lï¿½rer en faisant les opï¿½rations sur tout le tableau avec numpy, optimiser les paramï¿½tres et le code 
+#Plusieurs pistes d'amï¿½lioration : le choix des vecteurs alï¿½atoire, on peut faire autre chose que %256 pour que ca ne boucle pas
+#-un bruit 3D projetï¿½ comme dans l'article Better Gradient Noise, Andrew Kensler, Aaron Knoll and Peter Shirley,UUSCI-2008-001
+#-Comme dans l'article State of the Art in Procedural Noise Functions, on peut orienter le bruit, et le modifier de plusieurs maniï¿½res.
