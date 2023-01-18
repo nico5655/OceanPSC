@@ -57,7 +57,7 @@ def afficher(n):
 
 afficher(200)
 
-#C'est lent : on peut surement accélérer en faisant les opérations sur tout le tableau avec numpy, optimiser les paramètres et le code 
-#Plusieurs pistes d'amélioration : le choix des vecteurs aléatoire, on peut faire autre chose que %256 pour que ca ne boucle pas
-#-un bruit 3D projeté comme dans l'article Better Gradient Noise, Andrew Kensler, Aaron Knoll and Peter Shirley,UUSCI-2008-001
-#-Comme dans l'article State of the Art in Procedural Noise Functions, on peut orienter le bruit, et le modifier de plusieurs manières.
+#C'est lent : on peut surement accï¿½lï¿½rer en faisant les opï¿½rations sur tout le tableau avec numpy, optimiser les paramï¿½tres et le code 
+#Plusieurs pistes d'amï¿½lioration : le choix des vecteurs alï¿½atoire, on peut faire autre chose que %256 pour que ca ne boucle pas
+#-un bruit 3D projetï¿½ comme dans l'article Better Gradient Noise, Andrew Kensler, Aaron Knoll and Peter Shirley,UUSCI-2008-001
+#-Comme dans l'article State of the Art in Procedural Noise Functions, on peut orienter le bruit, et le modifier de plusieurs maniï¿½res.
