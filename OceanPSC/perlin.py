@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from time import time
 
-np.random.seed(1001)
+#np.random.seed(1002)
 Vec = np.random.rand(256,256,2)
 V = 2 * np.random.rand(256,256) - 1
 #Px = np.random.permutation(256)
@@ -22,7 +22,8 @@ def Vecteur(x,y):
     a = Vec[x % 256,y % 256]
     return a
 
-def Bruit(x,y):
+
+def Bruit(x,y,vecteur=Vecteur,val=Val):
     if x is float:
         x=np.array([x])
         y=np.array([y])
@@ -32,10 +33,11 @@ def Bruit(x,y):
     sx,sy = Smooth(x), Smooth(y)
 
     bruit = 0
-    bruit += (1 - sx) * (1 - sy) * (Val(X,Y) + np.sum(Vecteur(X,Y) * np.array([x.T,y.T]).T,axis=-1))
-    bruit += sx * (1 - sy) * (Val(X + 1,Y) + np.sum(Vecteur(X + 1,Y) * np.array([x.T - 1,y.T]).T,axis=-1))
-    bruit += (1 - sx) * sy * (Val(X,Y + 1) + np.sum(Vecteur(X,Y + 1) * np.array([x.T,y.T - 1]).T,axis=-1))
-    bruit += sx * sy * (Val(X + 1,Y + 1) + np.sum(Vecteur(X + 1,Y + 1) * np.array([x.T - 1,y.T - 1]).T,axis=-1))
+    bruit += (1 - sx) * (1 - sy) * (val(X,Y) + np.sum(vecteur(X,Y) * np.array([x.T,y.T]).T,axis=-1))
+    bruit += sx * (1 - sy) * (val(X + 1,Y) + np.sum(vecteur(X + 1,Y) * np.array([x.T - 1,y.T]).T,axis=-1))
+    bruit += (1 - sx) * sy * (val(X,Y + 1) + np.sum(vecteur(X,Y + 1) * np.array([x.T,y.T - 1]).T,axis=-1))
+    bruit += sx * sy * (val(X + 1,Y + 1) + np.sum(vecteur(X + 1,Y + 1) * np.array([x.T - 1,y.T - 1]).T,axis=-1))
+
     return bruit
 
 def perlin(x,y,alpha,omega,n=10):
@@ -46,7 +48,9 @@ def perlin(x,y,alpha,omega,n=10):
         N += a * Bruit(z.real,z.imag)
         z *= omega
         a *= alpha
-    return N
+    N=N-np.min(N)
+    N=N/np.max(N)
+    return N/2-1
 
 def afficher(n):
     t_1 = time()
@@ -60,10 +64,12 @@ def afficher(n):
     """t_1 = time()
     carte=np.array([[perlin(i/50,j/50,alpha,omega,8) for i in range(n)] for j in range(n)])
     print(time() - t_1)"""
-    plt.imshow(carte, cmap='terrain')
-    plt.show()
+    output_path = "sim-final4.png"
+    plt.imsave(output_path,carte,cmap='gray')
     #show3d(carte)
-afficher(200)
+
+if __name__ == 'main':
+    afficher(200)
 
 #C'est lent : on peut surement acc�l�rer en faisant les op�rations sur tout le tableau avec numpy, optimiser les param�tres et le code 
 #Plusieurs pistes d'am�lioration : le choix des vecteurs al�atoire, on peut faire autre chose que %256 pour que ca ne boucle pas

@@ -25,10 +25,10 @@ from perlin import perlin
 #3-Generant les tuiles
 resolution = 7
 taille_tuile = 2 ** resolution
-hauteur = 2
-largeur = 2
+hauteur = 4
+largeur = 4
 Carte = Map(-1000 * np.ones((largeur * taille_tuile,hauteur * taille_tuile)))
-Liste_types = [(-1000,10,200),(-850,20,100),(-850,20,400),(-1100,20,200)] #Listes de tous les types, et de ses caract�ristiques alt moy, grad moy,
+Liste_types = [(-1000,10,200),(-800,20,200),(-800,20,400)] #Listes de tous les types, et de ses caract�ristiques alt moy, grad moy,
                                                                           #amplitude min/max
 def trouver_Ocean(Carte):
     # retourne les tuiles sur lesquelles il faut generer
@@ -43,12 +43,12 @@ def attribution_types(Carte, Types):
 
 
 
-def genere_alt_moyennes(Carte,Tab_types):
+def genere_alt_moyennes(Carte,Tab_types,amp=False):
     n,m = Tab_types.shape
     alt_moy = np.zeros((n,m))
     alt_moy_etendue = np.zeros((n + 1,m + 1))
     for k in range((len(Liste_types))):
-        alt_moy[Tab_types == k] = Liste_types[k][0]
+        alt_moy[Tab_types == k] = Liste_types[k][2 if amp else 0]
     alt_moy_etendue[:-1,:-1] = alt_moy
     alt_moy_etendue[-1,:] = alt_moy_etendue[-2,:]
     alt_moy_etendue[:,-1] = alt_moy_etendue[:,-2]
@@ -71,29 +71,29 @@ def genere_alt_moyennes(Carte,Tab_types):
     I = np.arange(0,n * taille_tuile)
     J = np.arange(0,m * taille_tuile)
     I,J = np.meshgrid(I,J)
-    Carte.data = N(I / taille_tuile,J / taille_tuile)
-    plt.imshow(Carte.data,cmap='terrain')
+    rsl= N(I / taille_tuile,J / taille_tuile)
+    plt.imshow(rsl,cmap='terrain')
     plt.show()
+    return rsl
 
 
-def genere_tuile(Carte,type_tuile,i_tuile,j_tuile):
+
+def genere_tuile(Carte,type_tuile,i_tuile,j_tuile,amp):
     
     altitude_moyenne = type_tuile[0]
     gradient_moyen = type_tuile[1]
     amplitude_altitude = type_tuile[2]
 
-    #I = np.arange(0,taille_tuile)
-    #J = np.arange(0,taille_tuile)
-    #I,J = np.meshgrid(I,J)
+    I = np.arange(0,taille_tuile)
+    J = np.arange(0,taille_tuile)
+    I,J = np.meshgrid(I,J)
 
-    #i_carte = i_tuile + I
-    #j_carte = j_tuile + J
+    i_carte = i_tuile + I
+    j_carte = j_tuile + J
     alpha=1/2
     omega=2
-    for i in range(taille_tuile):
-        for j in range(taille_tuile):
-            i_carte,j_carte = i_tuile+i,j_tuile+j
-            Carte.data[i_carte,j_carte] +=  amplitude_altitude * perlin(i_carte,j_carte,alpha,omega) #+bonne moyenne continue
+    per=perlin(i_carte/50,j_carte/50,alpha,omega,20)
+    Carte.data[i_carte,j_carte] +=  amp[i_carte,j_carte]*perlin(i_carte/50,j_carte/50,alpha,omega,20) #+bonne moyenne continue
 
 #le résultat n'est pas incroyable, peut etre il faut garder les ^mêmes nombre
 #aléatoire et simplement en rajouter ?
@@ -118,13 +118,13 @@ if __name__ == "__main__":
     Tuile_a_generer = trouver_Ocean(Carte)
     #Tab_types = attribution_types(Carte, Liste_types)
 
-    genere_tuile(Carte, Liste_types[0], 0, 0)
     Tab_types = np.int32(np.trunc(np.random.rand(hauteur,largeur) * len(Liste_types)))
-    genere_alt_moyennes(Carte,Tab_types)
-
+    Carte.data=genere_alt_moyennes(Carte,Tab_types)
+    
+    amp=genere_alt_moyennes(Carte,Tab_types,True)
     for i in range(hauteur):
         for j in range(largeur):
-            genere_tuile(Carte, Liste_types[Tab_types[i,j]],taille_tuile*i , taille_tuile * j)
+            genere_tuile(Carte, Liste_types[Tab_types[i,j]],taille_tuile*i , taille_tuile * j,amp)
 
     plt.imshow(Carte.data, cmap='terrain')
     plt.show()
@@ -141,6 +141,6 @@ if __name__ == "__main__":
 
     show3d(Carte.data)
     #Carte.data=erosion(Carte.data)
-    #output_path = "sim-final.png"
-    #plt.imsave(output_path,Carte.data,cmap='gray')
+    output_path = "sim-final.png"
+    plt.imsave(output_path,Carte.data,cmap='gray')
 

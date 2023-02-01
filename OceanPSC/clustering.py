@@ -8,27 +8,33 @@ if __name__ == '__main__':
 import numpy as np
 from OceanPSC.Map import Map
 import matplotlib.pyplot as plt
-from sklearn.cluster import KMeans, MiniBatchKMeans
+from sklearn.cluster import KMeans, MiniBatchKMeans, DBSCAN
+from scipy.cluster.hierarchy import linkage, dendrogram, cophenet
+from scipy.spatial.distance import pdist
 
 path = "../data_plus_grande.tif"
 reduce = (54,54)
 nb_clusters = 5
 
-base_indicators = [(np.mean,None),(np.mean,lambda map: map.norme_grad),
-                 (lambda x,axis: np.max(x,axis=axis) - np.min(x,axis=axis),None),
-                 (lambda x,axis: np.float32(np.mean(x,axis=axis) > 0.5),lambda x: x.data >= 0)]
+base_indicators = [(np.mean,None),(np.mean,lambda map: map.norme_grad)]
 
+custom_indicators=[(np.mean,None)]
 base_filt = np.array([1,1,1,1])
 
+def roundup(x):
+    if x==int(x):
+        return int(x)
+    return int(x)+1
+
 def map_clusters(mod_labels,labels,shape,reduce):
-    rslt = np.zeros((shape[0] // reduce[0],shape[1] // reduce[1]))
+    rslt = np.zeros((roundup(shape[0] / reduce[0]),roundup(shape[1] / reduce[1])))
     for k in range(len(mod_labels)):
         x,y = labels[k]
         rslt[x,y] = mod_labels[k]
     return rslt
 
 def clusters(map,filt,nb_cluster):
-    data,labels = map.get_indicators_data(base_indicators,reduce)
+    data,labels = map.get_indicators_data(custom_indicators,reduce)
     data = data * filt
     model = KMeans(nb_cluster)
     model.fit(data, y=None, sample_weight= None)
@@ -41,5 +47,14 @@ def main_clustering():
     return rsl
 
 if __name__ == '__main__':
-    plt.imshow(main_clustering())
+    #plt.imshow(main_clustering())
+    from scipy.cluster.hierarchy import linkage, dendrogram, cophenet, fcluster
+    from scipy.spatial.distance import pdist
+    clusters=np.load('clusters.npy')
+    k=dendrogram(clusters,    p=12,  # show only the last p merged clusters
+        show_leaf_counts=False,  # otherwise numbers in brackets are counts
+        leaf_rotation=90.,
+        leaf_font_size=12.,
+        show_contracted=True,  orientation='top')
+    print('aa')
     plt.show()
