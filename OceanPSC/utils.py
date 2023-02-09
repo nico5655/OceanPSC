@@ -14,7 +14,7 @@ PIL.Image.MAX_IMAGE_PIXELS = 466560010
 def load_data(path,reduction=(4,4)):
     img=Image.open(path)
     rsl=np.array(img)
-    rsl = skimage.measure.block_reduce(rsl, (4,4), np.mean)
+    rsl = skimage.measure.block_reduce(rsl, (4,4), np.min)
     return rsl
 
 # Various common functions.

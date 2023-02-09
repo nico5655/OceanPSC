@@ -29,6 +29,7 @@ class Map(object):
         data = utils.load_data(path)
         return Map(data)
 
+
     def indicator_grid(self,calc,transformation=lambda x: x.data, reduce=(54,54),normaliser=True):
         data_t=transformation(self)
         k,_,_ = op.create_indicator_grid(data_t,calc,reduce,normaliser)
@@ -44,9 +45,15 @@ class Map(object):
                 ind_grid.append(self.indicator_grid(calc,trans,reduce=reduce))
                 continue
             ind_grid.append(self.indicator_grid(calc,reduce=reduce))
-
-        for i in range(self.data.shape[0]//reduce[0]):
-            for j in range(self.data.shape[1]//reduce[1]):
+        X,Y=np.gradient(ind_grid[0])
+        X,_,_=op.normalize(X)
+        Y,_,_=op.normalize(Y)
+        ind_grid.append(X)
+        ind_grid.append(Y)
+        n=self.data.shape[0]//reduce[0]
+        m=self.data.shape[1]//reduce[1]
+        for i in range(n):
+            for j in range(m):
                 a=[gr[i,j] for gr in ind_grid]
                 data.append(a)
                 labels.append((i,j))

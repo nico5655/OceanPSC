@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>bfd74db8-bbcc-477d-93ad-b146d9ebcdcf</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>GAN.py</StartupFile>
+    <StartupFile>clustering.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -22,8 +22,10 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="GAN.py" />
     <Compile Include="clustering.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DEM.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Erosion.py" />
@@ -38,6 +40,12 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="perlin.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="quadratic_parametrisation.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="RHSeg.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="utils.py" />
