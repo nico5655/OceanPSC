@@ -6,55 +6,91 @@ if __name__ == '__main__':
     sys.path.append(str(root))
 
 import numpy as np
-from OceanPSC.Map import Map
 import matplotlib.pyplot as plt
-from sklearn.cluster import KMeans, MiniBatchKMeans, DBSCAN
-from scipy.cluster.hierarchy import linkage, dendrogram, cophenet
+import OceanPSC.operations as op
+from OceanPSC.Map import Map
+from skimage.measure import block_reduce
+import copy
+import OceanPSC.DEM as d
+import OceanPSC.classification as c
+from sklearn.cluster import AgglomerativeClustering
 from scipy.spatial.distance import pdist
+from scipy.cluster.hierarchy import linkage, dendrogram, cophenet, fcluster
+import pandas as pd
 
-path = "../data_plus_grande.tif"
-reduce = (54,54)
-nb_clusters = 5
+def transfo_majority(dta,axis):
+    new=np.zeros((dta.shape[0],dta.shape[1]))
+    for i in range(dta.shape[0]):
+        for j in range(dta.shape[1]):
+            selec=dta[i,j]
+            new[i,j]=np.bincount(selec.reshape(-1)).argmax()
+    return new
 
-base_indicators = [(np.mean,None),(np.mean,lambda map: map.norme_grad)]
+def transfo_density(data,axis):
+    print(axis)
+    result=np.zeros((data.shape[0],data.shape[1],8))
+    for k in range(8):
+        result[:,:,k]=(data==k).mean(axis=axis)
+    return result
 
-custom_indicators=[(np.mean,None)]
-base_filt = np.array([1,1,1,1])
+def get_adjacency(n,m):
+    size=n*m
+    adjacency=np.zeros((size,size),dtype=np.bool)
+    for i in range(n):
+        for j in range(m):
+            for k in range(n):
+                for l in range(m):
+                    ind=i*m+j
+                    ind2=k*m+l
+                    if abs(i-k)<=1 and abs(j-l)<=1:
+                        adjacency[ind,ind2]=adjacency[ind2,ind]=True
+    return adjacency
 
-def roundup(x):
-    if x==int(x):
-        return int(x)
-    return int(x)+1
+def reduction_clustering(classes,elev):
+    fc=classes.copy()
+    fc[fc==6]=5
+    fc[fc>8]=7
+    fc[fc>6]=fc[fc>6]-1
+    relev=block_reduce(elev,(50,50),np.mean)
+    intol=block_reduce(elev,(50,50),np.min)
+    fclr=block_reduce(np.int32(fc),(50,50),transfo_density)
+    fc2=classes.copy()
+    rs=block_reduce(np.int32(fc2),(50,50),transfo_majority)
+    adjacency=get_adjacency(fclr.shape[0],fclr.shape[1])
+    A,B=np.meshgrid((intol<=0).flatten(),(intol<=0).flatten())
+    adjacency=adjacency[A&B].reshape((intol<=0).sum(),(intol<=0).sum())
+    vals=AgglomerativeClustering(n_clusters=1000,connectivity=adjacency,linkage='ward').fit(fclr[intol<=0]).labels_
+    vals11=-np.ones(fclr.shape[:-1])
+    vals11[intol<=0]=vals
+    vals=vals11
+    clusts=np.zeros((1000,8))
+    for k in range(1000):
+        clusts[k]=fclr[vals==k,:].mean(axis=0)
+    distance_matrix = pdist(clusts)
 
-def map_clusters(mod_labels,labels,shape,reduce):
-    rslt = np.zeros((roundup(shape[0] / reduce[0]),roundup(shape[1] / reduce[1])))
-    for k in range(len(mod_labels)):
-        x,y = labels[k]
-        rslt[x,y] = mod_labels[k]
-    return rslt
+    clusters = linkage(distance_matrix, 'ward')
+    dendrogram(clusters, p=8,  # show only the last p merged clusters
+    show_leaf_counts=False,  # otherwise numbers in brackets are counts
+    truncate_mode='level',
+    leaf_rotation=90.,
+    leaf_font_size=12.,
+    show_contracted=True,  orientation='top')
 
-def clusters(map,filt,nb_cluster):
-    data,labels = map.get_indicators_data(custom_indicators,reduce)
-    data = data * filt
-    model = KMeans(nb_cluster)
-    model.fit(data, y=None, sample_weight= None)
-    return map_clusters(model.labels_,labels,map.data.shape,reduce)
+    rslt=fcluster(clusters,3.35,criterion='distance')
+    rslt=rslt-1
+    nc=int(np.max(rslt))
+    vals3=vals.copy()
+    for k in range(512):
+        vals3[vals==k]=rslt[k]
 
+    vals3=np.float32(vals3)    
+    vals3[intol>0]=np.nan
+    aa=[]
+    aa.append(['MOR','VRS','RS','AP','CR','CS','CSH','SCA'])
+    for k in range(nc+1):
+        aa.append(np.int32(fclr[(vals3==k)].mean(axis=0)*100))
+    df=pd.DataFrame(columns=aa[0],data=aa[1:])
+    return df, vals3,clusters,vals
 
-def main_clustering():
-    map = Map.from_file(path)
-    rsl = clusters(map,base_filt,nb_clusters)
-    return rsl
-
-if __name__ == '__main__':
-    #plt.imshow(main_clustering())
-    from scipy.cluster.hierarchy import linkage, dendrogram, cophenet, fcluster
-    from scipy.spatial.distance import pdist
-    clusters=np.load('clusters.npy')
-    k=dendrogram(clusters,    p=12,  # show only the last p merged clusters
-        show_leaf_counts=False,  # otherwise numbers in brackets are counts
-        leaf_rotation=90.,
-        leaf_font_size=12.,
-        show_contracted=True,  orientation='top')
-    print('aa')
-    plt.show()
+def main_cls():
+    return reduction_clustering(np.load('data/classes.npy'),np.load('data/st.npy')[250:-250,:])

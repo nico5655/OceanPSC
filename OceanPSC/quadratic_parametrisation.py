@@ -1,4 +1,8 @@
 import numpy as np
+import OceanPSC.operations as op
+
+##file:///C:/Users/nicol/Downloads/U077269.pdf page 95 for justification of find normal (notably the calculation simplification)
+
 
 def weights(radius):
     """Calculate the inverse distance weights on a (2*radius+1)X(2*radius+1) matrix"""

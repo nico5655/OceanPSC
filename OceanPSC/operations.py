@@ -21,6 +21,42 @@ def neighbor_grid(grid,neighbor_dist=1, bound_method='empty'):#empty, duplicate
     patches = stride_tricks.as_strided(rgrid, shape=shape, strides=(2* rgrid.strides))
     return patches
 
+def divide_treatment(data,f,vertical_cut=False,r=5,result_len=1,print_progress=False):
+    border=50#cut on vertical,circumnavigate on horizontal
+    n,m=data.shape
+    if not vertical_cut:
+        n_data=np.zeros((n+2*border,m))
+        n_data[border:-border,:]=data
+        n_data[:border,:]=data[:border,:][::-1,:]
+        n_data[-border:,:]=data[-border:,:][::-1,:]
+        data=n_data
+    else:
+        n-=2*border
+    
+    sn=n//r
+    sm=m//r
+    w_data=np.zeros((n+2*border,m+2*border))
+    w_data[:,border:-border]=data
+    w_data[:,:border]=data[:,-border:]
+    w_data[:,-border:]=data[:,:border]
+    if result_len==1:
+        result=np.zeros((n,m))
+    else:
+        result=np.zeros((n,m,result_len))
+    for i in range(r):
+        for j in range(r):
+            area=w_data[(i*sn):((i+1)*sn+2*border),(j*sm):((j+1)*sm+2*border)]
+            if result_len==1:
+                result[(i*sn):((i+1)*sn),(j*sm):((j+1)*sm)]=f(area)[border:-border,border:-border]
+            else:
+                result[(i*sn):((i+1)*sn),(j*sm):((j+1)*sm)]=np.array(f(area)).transpose(1,2,0)[border:-border,border:-border]
+            if print_progress:
+                print(100*(i*r+j+1)/(r**2),'% done')
+    if result_len==1:
+        return result
+    return result.transpose(2,0,1)
+
+
 def laplacien(na,x_dist=1,y_dist=1):
     """Calcule le champ du laplacien à partir du champ des valeurs."""
     vois=neighbor_grid(na)
@@ -50,40 +86,6 @@ def grad(na,x_dist=1, y_dist=1,clean_bounds=True):
     rsl=np.array([gradX,gradY]).T#todo: regarder les transposée... (et checker les dimensions)
     return rsl
 
-def divide_treatment(data,f,vertical_cut=False,r=5,result_len=1,display=False):
-    border=50#cut on vertical,circumnavigate on horizontal
-    n,m=data.shape
-    if not vertical_cut:
-        n_data=np.zeros((n+2*border,m))
-        n_data[border:-border,:]=data
-        n_data[:border,:]=data[:border,:][::-1,:]
-        n_data[-border:,:]=data[-border:,:][::-1,:]
-        data=n_data
-    else:
-        n-=2*border
-    
-    sn=n//r
-    sm=m//r
-    w_data=np.zeros((n+2*border,m+2*border))
-    w_data[:,border:-border]=data
-    w_data[:,:border]=data[:,-border:]
-    w_data[:,-border:]=data[:,:border]
-    if result_len==1:
-        result=np.zeros((n,m))
-    else:
-        result=np.zeros((n,m,result_len))
-    for i in range(r):
-        for j in range(r):
-            area=w_data[(i*sn):((i+1)*sn+2*border),(j*sm):((j+1)*sm+2*border)]
-            if result_len==1:
-                result[(i*sn):((i+1)*sn),(j*sm):((j+1)*sm)]=f(area)[border:-border,border:-border]
-            else:
-                result[(i*sn):((i+1)*sn),(j*sm):((j+1)*sm)]=np.array(f(area)).transpose(1,2,0)[border:-border,border:-border]
-            if display:
-                print(100*(i*r+j)/(r**2),'%')
-    if result_len==1:
-        return result
-    return result.transpose(2,0,1)
 
 def clean_boundaries(na, length=1):
     na[:,-length-1:-1]=0

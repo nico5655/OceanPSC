@@ -370,3 +370,11 @@ FodyWeavers.xsd
 /data
 /earth_data
 /figures
+/imgs
+/dataset
+/types
+/.ipynb_checkpoints/map_treatment-checkpoint.ipynb
+/.ipynb_checkpoints/dataset_creation-checkpoint.ipynb
+/.ipynb_checkpoints/classification-checkpoint.ipynb
+/dataset.zip
+/types.zip
