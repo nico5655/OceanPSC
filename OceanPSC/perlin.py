@@ -33,6 +33,10 @@ def Bruit(x,y,vecteur=Vecteur,val=Val):
     sx,sy = Smooth(x), Smooth(y)
 
     bruit = 0
+    bruit += (1 - sx) * (1 - sy) * (Val(X,Y) ) #+ np.sum(Vecteur(X,Y) * np.array([x.T,y.T]).T,axis=-1))
+    bruit += sx * (1 - sy) * (Val(X + 1,Y) )#+ np.sum(Vecteur(X + 1,Y) * np.array([x.T - 1,y.T]).T,axis=-1))
+    bruit += (1 - sx) * sy * (Val(X,Y + 1) ) #+ np.sum(Vecteur(X,Y + 1) * np.array([x.T,y.T - 1]).T,axis=-1))
+    bruit += sx * sy * (Val(X + 1,Y + 1) )#+ np.sum(Vecteur(X + 1,Y + 1) * np.array([x.T - 1,y.T - 1]).T,axis=-1))
     bruit += (1 - sx) * (1 - sy) * (val(X,Y) + np.sum(vecteur(X,Y) * np.array([x.T,y.T]).T,axis=-1))
     bruit += sx * (1 - sy) * (val(X + 1,Y) + np.sum(vecteur(X + 1,Y) * np.array([x.T - 1,y.T]).T,axis=-1))
     bruit += (1 - sx) * sy * (val(X,Y + 1) + np.sum(vecteur(X,Y + 1) * np.array([x.T,y.T - 1]).T,axis=-1))
@@ -59,7 +63,7 @@ def afficher(n):
     i = np.arange(n)
     j = np.arange(n)
     I,J = np.meshgrid(i,j)
-    carte = perlin(J / 50,I / 50,alpha,omega,8)
+    carte = perlin(J / 50,I / 50,alpha,omega,15)
     print(time() - t_1)
     """t_1 = time()
     carte=np.array([[perlin(i/50,j/50,alpha,omega,8) for i in range(n)] for j in range(n)])
