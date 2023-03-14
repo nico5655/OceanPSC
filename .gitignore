@@ -378,3 +378,4 @@ FodyWeavers.xsd
 /.ipynb_checkpoints/classification-checkpoint.ipynb
 /dataset.zip
 /types.zip
+/OceanPSC/training_checkpoints

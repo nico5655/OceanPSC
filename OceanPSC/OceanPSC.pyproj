@@ -29,6 +29,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Erosion.py" />
+    <Compile Include="GAN.py" />
     <Compile Include="Generation.py">
       <SubType>Code</SubType>
     </Compile>
