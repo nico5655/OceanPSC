@@ -9,8 +9,8 @@ import time
 import math
 import re
 
-taille_batch = 128
-nbr_entrainement = 300
+taille_batch = 200
+nbr_entrainement = 100
 bruit_dim = 100
 nbr_exemples = 36
 dir_nbr = 'C:/Users/fefeh/Documents/Travail/X/Deuxième année X/PSC/GAN'
@@ -37,7 +37,7 @@ def generateur_model():
     model.add(layers.Conv2DTranspose(16, (5, 5), strides=(2, 2), padding='same', use_bias=False))
     model.add(layers.BatchNormalization())
 
-    model.add(layers.Conv2DTranspose(3, (5, 5), strides=(2, 2), padding='same', use_bias=False, activation='sigmoid'))
+    model.add(layers.Conv2DTranspose(1, (5, 5), strides=(2, 2), padding='same', use_bias=False , activation='sigmoid'))
 
     return model
 
@@ -45,7 +45,7 @@ def generateur_model():
 def discriminateur_model():    
     model=tf.keras.Sequential()
 
-    model.add(layers.Conv2D(64, (5, 5), strides=(2, 2), padding='same', input_shape=[128, 128, 3]))
+    model.add(layers.Conv2D(64, (5, 5), strides=(2, 2), padding='same', input_shape=[128, 128, 1]))
     model.add(layers.LeakyReLU())
     model.add(layers.BatchNormalization())
     
@@ -102,12 +102,14 @@ def train(dataset, nbr_entrainement, bruit_pour_exemple=None):
 
     for entrainement in range(m, nbr_entrainement):
         start=time.time()
+        i = 0
         for image_batch in dataset:
             train_step(image_batch)
-        if bruit_pour_exemple is not None:
-            generatation_exemples(generateur, entrainement+1, bruit_pour_exemple)
-        if (entrainement+1)%100==0:
+            print(i)
+            i += 1
+        if (entrainement+1)%10==0:
             checkpoint.save(file_prefix=dir_nbr+"/training_checkpoints/ckpt")
+        generatation_exemples(generateur, entrainement, bruit_pour_exemple)
         print ('Entrainement {}: temps {} secondes'.format(entrainement+1, time.time()-start))
 
 def generatation_exemples(model, entrainement, bruit_pour_exemple):
@@ -121,13 +123,12 @@ def generatation_exemples(model, entrainement, bruit_pour_exemple):
     plt.imsave(dir_nbr+'/Images/img_{:05d}.png'.format(entrainement), tab_img_test,cmap='gray')
         
 train_images=[]
-for file in os.listdir(dir_nbr+'/ARDIS_DATASET_3/0'):
-    if file.endswith("jpg"):
-        img = cv2.imdecode(np.fromfile(dir_nbr+'/ARDIS_DATASET_3/0/'+file,dtype=np.uint8),cv2.IMREAD_UNCHANGED)
-        #ca marche mal les espaces?
-        if img is not None:
-            train_images.append(cv2.resize(img, (128, 128)))
-train_images = np.array(train_images, dtype=np.float32)/255
+for file in os.listdir(dir_nbr+'/dataset/passive_margin/passive_margin'):
+        tab = np.load(dir_nbr+'/dataset/passive_margin/passive_margin/'+file)
+        tab = (tab - np.mean(tab))/np.std(tab)
+        tab = tab[:,:,None]
+        train_images.append(tab)
+train_images = np.array(train_images, dtype=np.float32)
 
 generateur = generateur_model()
 discriminateur = discriminateur_model()
