@@ -22,6 +22,7 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="classification.py" />
     <Compile Include="clustering.py">
       <SubType>Code</SubType>
     </Compile>

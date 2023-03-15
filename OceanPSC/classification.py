@@ -404,7 +404,7 @@ def get_sea_classification(slope,roughness,organization,elevation,curvature):
     classes[img==1]=MID_OCEANIC_RIDGE
     
     #removing the small outliers
-    marqued=(big_categories['MID_OCEANIC_RIDGE'])
+    marqued=(big_categories['MID_OCEANIC_RIDGE'](classes))
     dmar=consolidate_numbers(marqued)
     sizes=reduce_nums(dmar)
     deletion=dmar[sizes[dmar]<=250]
