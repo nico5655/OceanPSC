@@ -1,272 +1,463 @@
-import numpy as np
-import operations as op
+#CustomLayers.py
+""" Module containing custom layers """
 
-def get_frequencies(data):
-    dist=5
-    freqs=np.zeros((35,data.shape[0],data.shape[1]))
-    for k in range(32):
-        freqs[k]=divide_treatment(data,lambda data: (op.neighbor_grid(data,dist)==k).mean(axis=(-1,-2)))
-
-    def LBP(data,R):
-        filtre=np.ones((2*R+1,2*R+1))
-        filtre[1:-1,1:-1]=0
-        edit=filtre[filtre==1]
-        for k in range(1,len(edit)+1):
-            edit[k-1]=k
-        filtre[filtre==1]=edit
-        vois=op.neighbor_grid(data,R)
-        sval=(vois.T==data.T).T
-        return np.sum((filtre>=1)*(sval)*2**filtre,axis=(-1,-2))
-
-    freqs[-3]=divide_treatment(data, lambda d: LBP(d,1))
-    freqs[-2]=divide_treatment(data, lambda d: LBP(d,2))
-    freqs[-1]=divide_treatment(data, lambda d: LBP(d,3))
-
-    return freqs.transpose(1,2,0)
+import torch as th
 
 
-def rec_hseg(w_data,level):
-    ### result variables
-    if level==max_level:
-        stop_regions=min_regions
-    else:
-        stop_regions=min_regions//2
-    if level == 1:
-        cl_rslt=np.arange(w_data.shape[0]*w_data.shape[1]).reshape(w_data.shape[0],w_data.shape[1])
-        region_caracs=w_data.reshape(-1,35)
-        region_sizes=np.int32(np.ones(cl_rslt.shape).reshape(-1))
-    else:
-        cl_rslt=np.zeros((w_data.shape[0],w_data.shape[1]))
-        #the 4 part split
-        vmid=w_data.shape[0]//2
-        hmid=w_data.shape[1]//2
-        cl1,rc1,rs1=rec_hseg(w_data[:vmid,:hmid],level-1)
-        cl_rslt[:vmid,:hmid]=cl1
-        region_caracs=rc1
-        region_sizes=rs1
-        cl2,rc2,rs2=rec_hseg(w_data[:vmid,hmid:],level-1)
-        cl_rslt[:vmid,hmid:]=(cl2+np.max(cl_rslt))+1
-        region_caracs+=rc2
-        region_sizes+=rs2
-        cl3,rc3,rs3=rec_hseg(w_data[vmid:,:hmid],level-1)
-        cl_rslt[vmid:,:hmid]=(cl3+np.max(cl_rslt))+1
-        region_caracs+=rc3
-        region_sizes+=rs3
-        cl4,rc4,rs4=rec_hseg(w_data[vmid:,hmid:],level-1)
-        cl_rslt[vmid:,hmid:]=(cl4+np.max(cl_rslt))+1
-        region_caracs+=rc4
-        region_sizes+=rs4
-        region_caracs=np.array(region_caracs)
-        region_sizes=np.array(region_sizes)
+# extending Conv2D and Deconv2D layers for equalized learning rate logic
+class _equalized_conv2d(th.nn.Module):
+    """ conv2d with the concept of equalized learning rate
+        Args:
+            :param c_in: input channels
+            :param c_out:  output channels
+            :param k_size: kernel size (h, w) should be a tuple or a single integer
+            :param stride: stride for conv
+            :param pad: padding
+            :param bias: whether to use bias or not
+    """
 
-    ### intermediary variables
-    if level==1:
-        all_regions=list(cl_rslt.copy().reshape(-1))
-    else:
-        all_regions=[k for k in range(len(region_sizes))]
+    def __init__(self, c_in, c_out, k_size, stride=1, pad=0, bias=True):
+        """ constructor for the class """
+        from torch.nn.modules.utils import _pair
+        from numpy import sqrt, prod
 
-    si=int(np.max(all_regions))+1
-    dists=np.zeros((si,si))
-    adjacents=np.zeros((si,si))
-    distincts=np.ones((si,si))
-    for l in range(si):
-        distincts[l,l]=0
+        super(_equalized_conv2d, self).__init__()
 
-    ### internal functions
+        # define the weight and bias if to be used
+        self.weight = th.nn.Parameter(th.nn.init.normal_(
+            th.empty(c_out, c_in, *_pair(k_size))
+        ))
 
-    def H(n,X):
-        rs=-X*np.log(X+(X==0))#0*log(0)=0 enforced by adding 1 to 0 values in log
-        return n*np.sum(rs,axis=-1)
+        self.use_bias = bias
+        self.stride = stride
+        self.pad = pad
 
-    def all_dists(i):
-        def H(n,X):
-            rs=-X*np.log(X+(X==0))#0*log(0)=0 enforced by adding 1 to 0 values in log
-            return n*np.sum(rs,axis=-1)
-        itr=(region_caracs.T*region_sizes).T+region_caracs[i]*region_sizes[i]
-        merged=((itr.T)/(region_sizes+region_sizes[i])).T
-        return H(region_sizes+region_sizes[i],merged)-(H(region_sizes[i],region_caracs[i])+H(region_sizes,region_caracs))
+        if self.use_bias:
+            self.bias = th.nn.Parameter(th.FloatTensor(c_out).fill_(0))
 
-    def merge(i,j):
-        if (not j in all_regions) or (not i in all_regions):
-            return
-        if i>j:
-            return merge(j,i)
-        region_caracs[i]=(region_caracs[i]*region_sizes[i]+region_caracs[j]*region_sizes[j])/(region_sizes[i]+region_sizes[j])
-        region_sizes[i]+=region_sizes[j]
-        region_sizes[j]=0
-        cl_rslt[cl_rslt==j]=i
-        all_regions.remove(j)
-        vois=op.neighbor_grid(cl_rslt,bound_method='duplicate')
-        
-            
-        for k in all_regions:
-            if k!=i and adjacents[k,j]:
-                adjacents[i,k]=True
-                adjacents[k,i]=True
-        
-        adjacents[j,:]=False
-        adjacents[:,j]=False
+        fan_in = prod(_pair(k_size)) * c_in  # value of fan_in
+        self.scale = sqrt(2) / sqrt(fan_in)
 
-        a_dists=all_dists(i)
-        dists[:,i]=a_dists
-        dists[i,:]=a_dists
+    def forward(self, x):
+        """
+        forward pass of the network
+        :param x: input
+        :return: y => output
+        """
+        from torch.nn.functional import conv2d
 
-    ### init
-    vois=op.neighbor_grid(cl_rslt,bound_method='duplicate')
-    for i in all_regions:
-        dta=np.int32(np.unique(vois[cl_rslt==i]))
-        for j in dta:
-            if j!=i:
-                adjacents[i,j]=True
-        a_dists=all_dists(i)
-        for k in all_regions:
-            d=a_dists[k]
-            dists[i,k]=d
-            dists[k,i]=d
+        return conv2d(input=x,
+                      weight=self.weight * self.scale,  # scale the weight on runtime
+                      bias=self.bias if self.use_bias else None,
+                      stride=self.stride,
+                      padding=self.pad)
 
-    ### treatment
-    while len(all_regions)>stop_regions:
-        min_h=np.min(dists[adjacents==1])
-        for reg in all_regions:
-            for j in all_regions:
-                if dists[reg,j]==min_h and adjacents[reg,j]==1:
-                    merge(reg,j)
-        
-        pred=(distincts==1)&(dists<=min_h)
-        if pred.sum()>0:
-            min_h2=np.min(dists[pred])
-            for reg in all_regions:
-                    for j in all_regions:
-                        if j>reg:
-                            cmh=dists[reg,j]
-                            if cmh<=min_h2:
-                                merge(reg,j)
-
-    ### result cleaning
-    n_regions_caracs=[]
-    n_regions_sizes=[]
-    #random.shuffle(all_regions)
-    for k in range(len(all_regions)):
-        reg=all_regions[k]
-        n_regions_caracs.append(region_caracs[reg])
-        n_regions_sizes.append(region_sizes[reg])
-        cl_rslt[cl_rslt==reg]=k
-    if level == max_level-1:
-        print('1 quarter')
-    return cl_rslt,n_regions_caracs,n_regions_sizes
-
-min_regions=512
-convfact=1.005
-critval=0
-max_level=6
-
-if __name__=='main':
-    r_cl=np.load('data/r_cl.npy')
-    god_power=get_frequencies(block_reduce(r_cl,(3,3),np.median))
-    freqs=god_power.transpose(2,0,1)
-    red_freqs=block_reduce(freqs,(1,3,3),np.mean)
-    big_data=red_freqs.transpose(1,2,0)
-    big_data=big_data[2:-2,:]
-
-    t=time.time()
-    rst=rec_hseg(big_data,max_level)
-    print(time.time()-t)
-    np.save('data/prem.npy',rst[0])
-
-    cl_rslt=rst[0].copy()
-    region_caracs=np.array(rst[1].copy())
-    region_sizes=np.array(rst[2].copy())
-
-    all_regions=[k for k in range(len(region_sizes))]
-    si=int(np.max(all_regions))+1
-    dists=np.zeros((si,si))
-    adjacents=np.zeros((si,si))
-    distincts=np.ones((si,si))
-    for l in range(si):
-        distincts[l,l]=0
-
-    ### internal functions
-
-    def H(n,X):
-        rs=-X*np.log(X+(X==0))#0*log(0)=0 enforced by adding 1 to 0 values in log
-        return n*np.sum(rs,axis=-1)
-
-    def all_dists(i):
-        def H(n,X):
-            rs=-X*np.log(X+(X==0))#0*log(0)=0 enforced by adding 1 to 0 values in log
-            return n*np.sum(rs,axis=-1)
-        itr=(region_caracs.T*region_sizes).T+region_caracs[i]*region_sizes[i]
-        merged=((itr.T)/(region_sizes+region_sizes[i])).T
-        return H(region_sizes+region_sizes[i],merged)-(H(region_sizes[i],region_caracs[i])+H(region_sizes,region_caracs))
-
-    def merge(i,j):
-        if (not j in all_regions) or (not i in all_regions):
-            return
-        if i>j:
-            return merge(j,i)
-        region_caracs[i]=(region_caracs[i]*region_sizes[i]+region_caracs[j]*region_sizes[j])/(region_sizes[i]+region_sizes[j])
-        region_sizes[i]+=region_sizes[j]
-        region_sizes[j]=0
-        cl_rslt[cl_rslt==j]=i
-        all_regions.remove(j)
-        vois=op.neighbor_grid(cl_rslt,bound_method='duplicate')
+    def extra_repr(self):
+        return ", ".join(map(str, self.weight.shape))
 
 
-        for k in all_regions:
-            if k!=i and adjacents[k,j]:
-                adjacents[i,k]=True
-                adjacents[k,i]=True
+class _equalized_deconv2d(th.nn.Module):
+    """ Transpose convolution using the equalized learning rate
+        Args:
+            :param c_in: input channels
+            :param c_out: output channels
+            :param k_size: kernel size
+            :param stride: stride for convolution transpose
+            :param pad: padding
+            :param bias: whether to use bias or not
+    """
 
-        adjacents[j,:]=False
-        adjacents[:,j]=False
+    def __init__(self, c_in, c_out, k_size, stride=1, pad=0, bias=True):
+        """ constructor for the class """
+        from torch.nn.modules.utils import _pair
+        from numpy import sqrt
 
-        a_dists=all_dists(i)
-        dists[:,i]=a_dists
-        dists[i,:]=a_dists
+        super(_equalized_deconv2d, self).__init__()
 
-    ### init
-    vois=op.neighbor_grid(cl_rslt,bound_method='duplicate')
-    for i in all_regions:
-        dta=np.int32(np.unique(vois[cl_rslt==i]))
-        for j in dta:
-            if j!=i:
-                adjacents[i,j]=True
-        a_dists=all_dists(i)
-        for k in all_regions:
-            d=a_dists[k]
-            dists[i,k]=d
-            dists[k,i]=d
+        # define the weight and bias if to be used
+        self.weight = th.nn.Parameter(th.nn.init.normal_(
+            th.empty(c_in, c_out, *_pair(k_size))
+        ))
 
-    ### treatment
-    while len(all_regions)>32:
-        min_h=np.min(dists[adjacents==1])
-        for reg in all_regions:
-            for j in all_regions:
-                if dists[reg,j]==min_h and adjacents[reg,j]==1:
-                    merge(reg,j)
+        self.use_bias = bias
+        self.stride = stride
+        self.pad = pad
 
-        pred=(distincts==0)&(dists<=min_h)
-        if pred.sum()>0:
-            min_h2=np.min(dists[pred])
-            for reg in all_regions:
-                    for j in all_regions:
-                        if j>reg:
-                            cmh=dists[reg,j]
-                            if cmh<=min_h2:
-                                merge(reg,j)
+        if self.use_bias:
+            self.bias = th.nn.Parameter(th.FloatTensor(c_out).fill_(0))
 
-    ### result cleaning
-    n_regions_caracs=[]
-    n_regions_sizes=[]
-    #random.shuffle(all_regions)
-    for k in range(len(all_regions)):
-        reg=all_regions[k]
-        n_regions_caracs.append(region_caracs[reg])
-        n_regions_sizes.append(region_sizes[reg])
-        cl_rslt[cl_rslt==reg]=k
+        fan_in = c_in  # value of fan_in for deconv
+        self.scale = sqrt(2) / sqrt(fan_in)
 
-    dt=cl_rslt.copy()
-    for k in np.unique(dt):
-        dt[dt==k]=np.mean(big_data[dt==k])
+    def forward(self, x):
+        """
+        forward pass of the layer
+        :param x: input
+        :return: y => output
+        """
+        from torch.nn.functional import conv_transpose2d
 
-    np.save('final_dt.npy',dt)
+        return conv_transpose2d(input=x,
+                                weight=self.weight * self.scale,  # scale the weight on runtime
+                                bias=self.bias if self.use_bias else None,
+                                stride=self.stride,
+                                padding=self.pad)
+
+    def extra_repr(self):
+        return ", ".join(map(str, self.weight.shape))
+
+
+class _equalized_linear(th.nn.Module):
+    """ Linear layer using equalized learning rate
+        Args:
+            :param c_in: number of input channels
+            :param c_out: number of output channels
+            :param bias: whether to use bias with the linear layer
+    """
+
+    def __init__(self, c_in, c_out, bias=True):
+        """
+        Linear layer modified for equalized learning rate
+        """
+        from numpy import sqrt
+
+        super(_equalized_linear, self).__init__()
+
+        self.weight = th.nn.Parameter(th.nn.init.normal_(
+            th.empty(c_out, c_in)
+        ))
+
+        self.use_bias = bias
+
+        if self.use_bias:
+            self.bias = th.nn.Parameter(th.FloatTensor(c_out).fill_(0))
+
+        fan_in = c_in
+        self.scale = sqrt(2) / sqrt(fan_in)
+
+    def forward(self, x):
+        """
+        forward pass of the layer
+        :param x: input
+        :return: y => output
+        """
+        from torch.nn.functional import linear
+        return linear(x, self.weight * self.scale,
+                      self.bias if self.use_bias else None)
+
+
+# ----------------------------------------------------------------------------
+# Pixelwise feature vector normalization.
+# reference: https://github.com/tkarras/progressive_growing_of_gans/blob/master/networks.py#L120
+# ----------------------------------------------------------------------------
+class PixelwiseNorm(th.nn.Module):
+    def __init__(self):
+        super(PixelwiseNorm, self).__init__()
+
+    def forward(self, x, alpha=1e-8):
+        """
+        forward pass of the module
+        :param x: input activations volume
+        :param alpha: small number for numerical stability
+        :return: y => pixel normalized activations
+        """
+        y = x.pow(2.).mean(dim=1, keepdim=True).add(alpha).sqrt()  # [N1HW]
+        y = x / y  # normalize the input x volume
+        return y
+
+
+# ==========================================================
+# Layers required for Building The generator and
+# discriminator
+# ==========================================================
+class GenInitialBlock(th.nn.Module):
+    """ Module implementing the initial block of the input """
+
+    def __init__(self, in_channels):
+        """
+        constructor for the inner class
+        :param in_channels: number of input channels to the block
+        """
+        from torch.nn import LeakyReLU
+
+        super(GenInitialBlock, self).__init__()
+
+        self.conv_1 = _equalized_deconv2d(in_channels, in_channels, (4, 4), bias=True,pad=1)
+        self.conv_2 = _equalized_conv2d(in_channels, in_channels, (3, 3),
+                                        pad=1, bias=True)
+
+        # Pixelwise feature vector normalization operation
+        self.pixNorm = PixelwiseNorm()
+
+        # leaky_relu:
+        self.lrelu = LeakyReLU(0.2)
+
+    def forward(self, x):
+        """
+        forward pass of the block
+        :param x: input to the module
+        :return: y => output
+        """
+        # convert the tensor shape:
+        y = th.unsqueeze(th.unsqueeze(x, -1), -1)
+
+        # perform the forward computations:
+        y = self.lrelu(self.conv_1(y))
+        y = self.lrelu(self.conv_2(y))
+
+        # apply pixel norm
+        y = self.pixNorm(y)
+
+        return y
+
+
+class GenGeneralConvBlock(th.nn.Module):
+    """ Module implementing a general convolutional block """
+
+    def __init__(self, in_channels, out_channels):
+        """
+        constructor for the class
+        :param in_channels: number of input channels to the block
+        :param out_channels: number of output channels required
+        """
+        from torch.nn import LeakyReLU
+        from torch.nn.functional import interpolate
+
+        super(GenGeneralConvBlock, self).__init__()
+
+        self.upsample = lambda x: interpolate(x, scale_factor=2)
+
+        self.conv_1 = _equalized_conv2d(in_channels, out_channels, (3, 3),
+                                        pad=1, bias=True)
+        self.conv_2 = _equalized_conv2d(out_channels, out_channels, (3, 3),
+                                        pad=1, bias=True)
+
+        # Pixelwise feature vector normalization operation
+        self.pixNorm = PixelwiseNorm()
+
+        # leaky_relu:
+        self.lrelu = LeakyReLU(0.2)
+
+    def forward(self, x):
+        """
+        forward pass of the block
+        :param x: input
+        :return: y => output
+        """
+        y = self.upsample(x)
+        y = self.pixNorm(self.lrelu(self.conv_1(y)))
+        y = self.pixNorm(self.lrelu(self.conv_2(y)))
+
+        return y
+
+
+# function to calculate the Exponential moving averages for the Generator weights
+# This function updates the exponential average weights based on the current training
+def update_average(model_tgt, model_src, beta):
+    """
+    update the model_target using exponential moving averages
+    :param model_tgt: target model
+    :param model_src: source model
+    :param beta: value of decay beta
+    :return: None (updates the target model)
+    """
+
+    # utility function for toggling the gradient requirements of the models
+    def toggle_grad(model, requires_grad):
+        for p in model.parameters():
+            p.requires_grad_(requires_grad)
+
+    # turn off gradient calculation
+    toggle_grad(model_tgt, False)
+    toggle_grad(model_src, False)
+
+    param_dict_src = dict(model_src.named_parameters())
+
+    for p_name, p_tgt in model_tgt.named_parameters():
+        p_src = param_dict_src[p_name]
+        assert (p_src is not p_tgt)
+        p_tgt.copy_(beta * p_tgt + (1. - beta) * p_src)
+
+    # turn back on the gradient calculation
+    toggle_grad(model_tgt, True)
+    toggle_grad(model_src, True)
+
+
+class MinibatchStdDev(th.nn.Module):
+    """
+    Minibatch standard deviation layer for the discriminator
+    """
+
+    def __init__(self):
+        """
+        derived class constructor
+        """
+        super(MinibatchStdDev, self).__init__()
+
+    def forward(self, x, alpha=1e-8):
+        """
+        forward pass of the layer
+        :param x: input activation volume
+        :param alpha: small number for numerical stability
+        :return: y => x appended with standard deviation constant map
+        """
+        batch_size, _, height, width = x.shape
+
+        # [B x C x H x W] Subtract mean over batch.
+        y = x - x.mean(dim=0, keepdim=True)
+
+        # [1 x C x H x W]  Calc standard deviation over batch
+        y = th.sqrt(y.pow(2.).mean(dim=0, keepdim=False) + alpha)
+
+        # [1]  Take average over feature_maps and pixels.
+        y = y.mean().view(1, 1, 1, 1)
+
+        # [B x 1 x H x W]  Replicate over group and pixels.
+        y = y.repeat(batch_size, 1, height, width)
+
+        # [B x C x H x W]  Append as new feature_map.
+        y = th.cat([x, y], 1)
+
+        # return the computed values:
+        return y
+
+
+class DisFinalBlock(th.nn.Module):
+    """ Final block for the Discriminator """
+
+    def __init__(self, in_channels):
+        """
+        constructor of the class
+        :param in_channels: number of input channels
+        """
+        from torch.nn import LeakyReLU
+
+        super(DisFinalBlock, self).__init__()
+
+        # declare the required modules for forward pass
+        self.batch_discriminator = MinibatchStdDev()
+
+        self.conv_1 = _equalized_conv2d(in_channels + 1, in_channels, (3, 3), pad=1, bias=True)
+        self.conv_2 = _equalized_conv2d(in_channels, in_channels, (4, 4), pad=1, bias=True)
+        # final conv layer emulates a fully connected layer
+        self.conv_3 = _equalized_conv2d(in_channels, 1, (1, 1), bias=True)
+
+        # leaky_relu:
+        self.lrelu = LeakyReLU(0.2)
+
+    def forward(self, x):
+        """
+        forward pass of the FinalBlock
+        :param x: input
+        :return: y => output
+        """
+        # minibatch_std_dev layer
+        y = self.batch_discriminator(x)
+
+        # define the computations
+        y = self.lrelu(self.conv_1(y))
+        y = self.lrelu(self.conv_2(y))
+
+        # fully connected layer
+        y = self.conv_3(y)  # This layer has linear activation
+
+        # flatten the output raw discriminator scores
+        return y.view(-1)
+
+
+class ConDisFinalBlock(th.nn.Module):
+    """ Final block for the Conditional Discriminator
+        Uses the Projection mechanism from the paper -> https://arxiv.org/pdf/1802.05637.pdf
+    """
+
+    def __init__(self, in_channels, num_classes):
+        """
+        constructor of the class
+        :param in_channels: number of input channels
+        :param num_classes: number of classes for conditional discrimination
+        """
+        from torch.nn import LeakyReLU, Embedding
+
+        super(ConDisFinalBlock, self).__init__()
+
+        # declare the required modules for forward pass
+        self.batch_discriminator = MinibatchStdDev()
+        self.conv_1 = _equalized_conv2d(in_channels + 1, in_channels, (3, 3), pad=1, bias=True)
+        self.conv_2 = _equalized_conv2d(in_channels, in_channels, (4, 4), bias=True)
+
+        # final conv layer emulates a fully connected layer
+        self.conv_3 = _equalized_conv2d(in_channels, 1, (1, 1), bias=True)
+
+        # we also need an embedding matrix for the label vectors
+        self.label_embedder = Embedding(num_classes, in_channels, max_norm=1)
+
+        # leaky_relu:
+        self.lrelu = LeakyReLU(0.2)
+
+    def forward(self, x, labels):
+        """
+        forward pass of the FinalBlock
+        :param x: input
+        :param labels: samples' labels for conditional discrimination
+                       Note that these are pure integer labels [Batch_size x 1]
+        :return: y => output
+        """
+        # minibatch_std_dev layer
+        y = self.batch_discriminator(x)  # [B x C x 4 x 4]
+
+        # perform the forward pass
+        y = self.lrelu(self.conv_1(y))  # [B x C x 4 x 4]
+
+        # obtain the computed features
+        y = self.lrelu(self.conv_2(y))  # [B x C x 1 x 1]
+
+        # embed the labels
+        labels = self.label_embedder(labels)  # [B x C]
+
+        # compute the inner product with the label embeddings
+        y_ = th.squeeze(th.squeeze(y, dim=-1), dim=-1)  # [B x C]
+        projection_scores = (y_ * labels).sum(dim=-1)  # [B]
+
+        # normal discrimination score
+        y = self.lrelu(self.conv_3(y))  # This layer has linear activation
+
+        # calculate the total score
+        final_score = y.view(-1) + projection_scores
+
+        # return the output raw discriminator scores
+        return final_score
+
+
+class DisGeneralConvBlock(th.nn.Module):
+    """ General block in the discriminator  """
+
+    def __init__(self, in_channels, out_channels):
+        """
+        constructor of the class
+        :param in_channels: number of input channels
+        :param out_channels: number of output channels
+        """
+        from torch.nn import AvgPool2d, LeakyReLU
+
+        super(DisGeneralConvBlock, self).__init__()
+
+        self.conv_1 = _equalized_conv2d(in_channels, in_channels, (3, 3), pad=1, bias=True)
+        self.conv_2 = _equalized_conv2d(in_channels, out_channels, (3, 3), pad=1, bias=True)
+
+        self.downSampler = AvgPool2d(2)
+
+        # leaky_relu:
+        self.lrelu = LeakyReLU(0.2)
+
+    def forward(self, x):
+        """
+        forward pass of the module
+        :param x: input
+        :return: y => output
+        """
+        # define the computations
+        y = self.lrelu(self.conv_1(x))
+        y = self.lrelu(self.conv_2(y))
+        y = self.downSampler(y)
+
+        return y

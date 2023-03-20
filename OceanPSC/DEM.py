@@ -105,11 +105,11 @@ class DEM(object):
 
 
     def save(self,path):
-        np.save(path / 'dem/elevation.npy',self.elevation)
-        np.save(path / 'dem/slope.npy',self.slope)
-        np.save(path / 'dem/roughness.npy',self.roughness)
-        np.save(path / 'dem/organization.npy',self.organization)
-        np.save(path / 'dem/curvature.npy',self.curvature)
+        np.save(path + '/dem/elevation.npy',self.elevation)
+        np.save(path + '/dem/slope.npy',self.slope)
+        np.save(path + '/dem/roughness.npy',self.roughness)
+        np.save(path + '/dem/organization.npy',self.organization)
+        np.save(path + '/dem/curvature.npy',self.curvature)
 
 
     def classify(self,a,b,c,d,e,f,radius):

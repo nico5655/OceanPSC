@@ -9,11 +9,11 @@ import time
 import math
 import re
 
-taille_batch = 200
+taille_batch = 50
 nbr_entrainement = 100
 bruit_dim = 100
 nbr_exemples = 36
-dir_nbr = 'C:/Users/fefeh/Documents/Travail/X/Deuxième année X/PSC/GAN'
+dir_nbr = ''
 
 def generateur_model():
     model = tf.keras.Sequential()
@@ -115,16 +115,15 @@ def train(dataset, nbr_entrainement, bruit_pour_exemple=None):
 def generatation_exemples(model, entrainement, bruit_pour_exemple):
     test_images = model(bruit_pour_exemple, training=False)
     n = int(math.sqrt(len(bruit_pour_exemple)))
-    tab_img_test=np.zeros(shape=(128*n, 128*n, 3), dtype=np.float32)
+    tab_img_test=np.zeros(shape=(128*n, 128*n,1), dtype=np.float32)
     for i in range(n):
         for j in range(n):
             tab_img_test[i*128:(i+1)*128, j*128:(j+1)*128, :] = test_images[i*n+j]
-    print(np.std(tab_img_test))
-    plt.imsave(dir_nbr+'/Images/img_{:05d}.png'.format(entrainement), tab_img_test,cmap='gray')
-        
+    plt.imsave(dir_nbr+'Images/img_{:05d}.png'.format(entrainement), tab_img_test.reshape(128*n,128*n),cmap='jet')
+
 train_images=[]
-for file in os.listdir(dir_nbr+'/dataset/passive_margin/passive_margin'):
-        tab = np.load(dir_nbr+'/dataset/passive_margin/passive_margin/'+file)
+for file in os.listdir(dir_nbr+'dataset/passive_margin'):
+        tab = np.load(dir_nbr+'dataset/passive_margin/'+file)
         tab = (tab - np.mean(tab))/np.std(tab)
         tab = tab[:,:,None]
         train_images.append(tab)
@@ -136,12 +135,13 @@ cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 generateur_optimizer = tf.keras.optimizers.Adam(1e-4)
 discriminateur_optimizer = tf.keras.optimizers.Adam(1e-4)
 checkpoint = tf.train.Checkpoint(generateur_optimizer=generateur_optimizer,
-                               discriminateur_optimizer=discriminateur_optimizer,
-                               generateur=generateur,
-                               discriminateur=discriminateur)
+                                discriminateur_optimizer=discriminateur_optimizer,
+                                generateur=generateur,
+                                discriminateur=discriminateur)
 bruit_pour_exemple = tf.random.normal([nbr_exemples, bruit_dim])
 train_dataset = tf.data.Dataset.from_tensor_slices(train_images).batch(taille_batch)
-train(train_dataset ,nbr_entrainement, bruit_pour_exemple)
+if __name__ =='main':
+    train(train_dataset ,nbr_entrainement, bruit_pour_exemple)
 
 #https://keras.io/examples/generative/conditional_gan/
 #faire un GAN conditionnel dont toutes les catégories issues d'une image extraite sont 

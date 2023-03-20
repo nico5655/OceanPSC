@@ -379,3 +379,10 @@ FodyWeavers.xsd
 /dataset.zip
 /types.zip
 /OceanPSC/training_checkpoints
+/Images
+/models
+/samples
+/training_images/passive_margin
+/training_checkpoints
+/.ipynb_checkpoints/ProGAN-checkpoint.ipynb
+/.ipynb_checkpoints/Untitled1-checkpoint.ipynb
