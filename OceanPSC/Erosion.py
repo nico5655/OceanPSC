@@ -169,22 +169,3 @@ def erosion(terrain, enable_snapshotting=False):
     print(terrain.shape,np.max(terrain),np.min(terrain),np.max(terrain)-np.min(terrain))
     return terrain
 
-"""
-plt.imshow(terrain,cmap="terrain")
-plt.colorbar()
-plt.show()
-
-ta = time()
-terrain = erosion(terrain, enable_snapshotting)
-tb = time()
-print(tb-ta)
-
-plt.imshow(terrain,cmap="terrain")
-plt.colorbar()
-plt.show()
-
-np.save('simulation', terrain)"""
-# myFile = np.load(r"C:\Users\Mohamed Amine\Desktop\erosion\code\simulation.npy")
-# utils.save_as_png(
-# 
-# .normalize(myFile), r"C:\Users\Mohamed Amine\Desktop\erosion\image\simulation.png")
