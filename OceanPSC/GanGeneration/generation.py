@@ -11,7 +11,7 @@ class Generation:
         #instiating gan with training=False will auto load latest checkpoint and setup for max depth (i.e. 128x128)
         self.gan=CGAN(training=False)
 
-    def generate_one_sample(self,label,mean_std=None):
+    def generate_one_sample(self,label,mean_stds=None):
         """Generate one 128x128 elevation map (in meters) sample of given label (str or int).
         Meanstd should tuple, list or nparray (the meters value shouldn't be too far away from expected value range for the label),
         leaving None will result in using default mean_std for this label."""
