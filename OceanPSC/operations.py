@@ -21,35 +21,41 @@ def neighbor_grid(grid,neighbor_dist=1, bound_method='empty'):#empty, duplicate
     patches = stride_tricks.as_strided(rgrid, shape=shape, strides=(2* rgrid.strides))
     return patches
 
-def divide_treatment(data,f,vertical_cut=False,r=5,result_len=1,print_progress=False):
-    border=50#cut on vertical,circumnavigate on horizontal
-    n,m=data.shape
+def divide_treatment(data,f,vertical_cut=False,r=5,result_len=1,print_progress=False,out_multiplier=1,border=50):
+    #border=50#cut on vertical,circumnavigate on horizontal
+    
+    if len(data.shape)==2:
+        data=data[:,:,None]
+    n,m,dep=data.shape
     if not vertical_cut:
-        n_data=np.zeros((n+2*border,m))
-        n_data[border:-border,:]=data
-        n_data[:border,:]=data[:border,:][::-1,:]
-        n_data[-border:,:]=data[-border:,:][::-1,:]
+        n_data=np.zeros((n+2*border,m,dep))
+        n_data[border:-border,:,:]=data
+        n_data[:border,:,:]=data[:border,:,:][::-1,:,:]
+        n_data[-border:,:,:]=data[-border:,:,:][::-1,:,:]
         data=n_data
     else:
         n-=2*border
     
     sn=n//r
     sm=m//r
-    w_data=np.zeros((n+2*border,m+2*border))
-    w_data[:,border:-border]=data
-    w_data[:,:border]=data[:,-border:]
-    w_data[:,-border:]=data[:,:border]
+    w_data=np.zeros((n+2*border,m+2*border,dep))
+    w_data[:,border:-border,:]=data
+    w_data[:,:border,:]=data[:,-border:,:]
+    w_data[:,-border:,:]=data[:,:border,:]
     if result_len==1:
-        result=np.zeros((n,m))
+        result=np.zeros((n*out_multiplier,m*out_multiplier))
     else:
-        result=np.zeros((n,m,result_len))
+        result=np.zeros((n*out_multiplier,m*out_multiplier,result_len))
     for i in range(r):
         for j in range(r):
-            area=w_data[(i*sn):((i+1)*sn+2*border),(j*sm):((j+1)*sm+2*border)]
-            if result_len==1:
-                result[(i*sn):((i+1)*sn),(j*sm):((j+1)*sm)]=f(area)[border:-border,border:-border]
+            if dep==1:
+                area=w_data[(i*sn):((i+1)*sn+2*border),(j*sm):((j+1)*sm+2*border),0]
             else:
-                result[(i*sn):((i+1)*sn),(j*sm):((j+1)*sm)]=np.array(f(area)).transpose(1,2,0)[border:-border,border:-border]
+                area=w_data[(i*sn):((i+1)*sn+2*border),(j*sm):((j+1)*sm+2*border)]
+            if result_len==1:
+                result[(i*sn)*out_multiplier:((i+1)*sn)*out_multiplier,(j*sm)*out_multiplier:((j+1)*sm)*out_multiplier]=f(area)[border*out_multiplier:-border*out_multiplier,border*out_multiplier:-border*out_multiplier]
+            else:
+                result[(i*sn)*out_multiplier:((i+1)*sn)*out_multiplier,(j*sm)*out_multiplier:((j+1)*sm)*out_multiplier]=np.array(f(area)).transpose(1,2,0)[border*out_multiplier:-border*out_multiplier,border*out_multiplier:-border*out_multiplier]
             if print_progress:
                 print(100*(i*r+j+1)/(r**2),'% done')
     if result_len==1:

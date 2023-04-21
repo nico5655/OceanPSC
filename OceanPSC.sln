@@ -5,8 +5,6 @@ VisualStudioVersion = 16.0.31515.178
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "OceanPSC", "OceanPSC\OceanPSC.pyproj", "{BFD74DB8-BBCC-477D-93AD-B146D9EBCDCF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsolePSC", "ConsolePSC\ConsolePSC.csproj", "{30EC23D2-4632-41BD-9EE6-6448DE7DA915}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,10 +13,6 @@ Global
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{BFD74DB8-BBCC-477D-93AD-B146D9EBCDCF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{BFD74DB8-BBCC-477D-93AD-B146D9EBCDCF}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{30EC23D2-4632-41BD-9EE6-6448DE7DA915}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{30EC23D2-4632-41BD-9EE6-6448DE7DA915}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{30EC23D2-4632-41BD-9EE6-6448DE7DA915}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{30EC23D2-4632-41BD-9EE6-6448DE7DA915}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

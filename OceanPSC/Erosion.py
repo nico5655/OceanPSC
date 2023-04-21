@@ -11,7 +11,7 @@ import scipy as sp
 import matplotlib.pyplot as plt
 import os
 import sys
-import utils
+import OceanPSC.utils as utils
 from time import time
 
 
@@ -52,7 +52,7 @@ if enable_snapshotting:
         pass
 
 
-def erosion(terrain, enable_snapshotting=False):
+def erosion(terrain, enable_snapshotting=False,iterations = 50):
 
     dim=terrain.shape[0]
     shape=terrain.shape
@@ -84,7 +84,7 @@ def erosion(terrain, enable_snapshotting=False):
 
     # The numer of iterations is proportional to the grid dimension. This is to
     # allow changes on one side of the grid to affect the other side.
-    iterations = int(0.4 * dim)
+    #int(0.1 * dim)
 
     # `terrain` represents the actual terrain height we're interested in
     # terrain = utils.fbm(shape, -2.0)
@@ -100,6 +100,8 @@ def erosion(terrain, enable_snapshotting=False):
     velocity = np.zeros_like(terrain)
     for i in range(0, iterations):
 
+        if i%max(1,(iterations//100))==0:
+            print('.',end='',flush=True)
         # Add precipitation. This is done by via simple uniform random distribution,
         # although other models use a raindrop model
         water += np.random.rand(*shape) * rain_rate

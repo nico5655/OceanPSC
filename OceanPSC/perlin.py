@@ -75,7 +75,6 @@ def afficher(n):
 if __name__ == 'main':
     afficher(200)
 
-#C'est lent : on peut surement acc�l�rer en faisant les op�rations sur tout le tableau avec numpy, optimiser les param�tres et le code 
 #Plusieurs pistes d'am�lioration : le choix des vecteurs al�atoire, on peut faire autre chose que %256 pour que ca ne boucle pas
 #-un bruit 3D projet� comme dans l'article Better Gradient Noise, Andrew Kensler, Aaron Knoll and Peter Shirley,UUSCI-2008-001
 #-Comme dans l'article State of the Art in Procedural Noise Functions, on peut orienter le bruit, et le modifier de plusieurs mani�res.

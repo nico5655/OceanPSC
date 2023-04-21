@@ -373,9 +373,6 @@ FodyWeavers.xsd
 /imgs
 /dataset
 /types
-/.ipynb_checkpoints/map_treatment-checkpoint.ipynb
-/.ipynb_checkpoints/dataset_creation-checkpoint.ipynb
-/.ipynb_checkpoints/classification-checkpoint.ipynb
 /dataset.zip
 /types.zip
 /OceanPSC/training_checkpoints
@@ -384,5 +381,7 @@ FodyWeavers.xsd
 /samples
 /training_images/passive_margin
 /training_checkpoints
-/.ipynb_checkpoints/ProGAN-checkpoint.ipynb
-/.ipynb_checkpoints/Untitled1-checkpoint.ipynb
+/.ipynb_checkpoints
+/Images2
+/train
+/train.zip
