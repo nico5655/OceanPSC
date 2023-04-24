@@ -5,10 +5,11 @@ from .models import define_generator,define_discriminator
 from .params import *
 from .data import denormalization
 
-def create_intermediate_gen(model):
-  int_layer=model.get_layer('intermediate_layer')
+
+def create_intermediate_gen(model,i,inter_name):
+  int_layer=model.get_layer(inter_name if i==5 else 'intermediate_layer')
   index=model.layers.index(int_layer)
-  ninput=layers.Input(shape=(None,None,int_layer.output_shape[-1]))
+  ninput=layers.Input(shape=(None,None,int_layer.get_output_shape_at(-1)[-1]))
   x=ninput
   for k in range(index+1,len(model.layers)):
     x=model.layers[k](x)
@@ -16,13 +17,14 @@ def create_intermediate_gen(model):
 
 
 class CGAN:
-  def __init__(self,training=True,max_depth=5):
+  def __init__(self,training=True,max_depth=5,inter_d=2):
+    inter_name=f'inter_out_{inter_d}'
     self.max_depth=max_depth
     self.gens=define_generator(bruit_dim,max_depth+1)
     self.diss=define_discriminator(max_depth+1)
-    self.int_gens=[create_intermediate_gen(m[0]) for m in self.gens]
+    self.int_gens=[create_intermediate_gen(m[0],i,inter_name) for m,i in zip(self.gens,range(len(self.gens)))]
     self.int_outs=[tf.keras.Model(inputs=m[0].inputs,
-                                         outputs=m[0].get_layer('intermediate_layer').output) for m in self.gens]
+                                         outputs=m[0].get_layer(inter_name if i==5 else 'intermediate_layer').output) for m,i in zip(self.gens,range(len(self.gens)))]
 
     self.training=training
     if training:

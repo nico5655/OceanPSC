@@ -7,11 +7,10 @@ if __name__ == '__main__':
 
 import numpy as np
 import matplotlib.pyplot as plt
-import OceanPSC.operations as op
-from OceanPSC.Map import Map
+from .. import operations as op
+from ..Map import Map
 from skimage.measure import block_reduce
 import copy
-import OceanPSC.DEM as d
 import OceanPSC.classification as c
 from sklearn.cluster import AgglomerativeClustering
 from scipy.spatial.distance import pdist

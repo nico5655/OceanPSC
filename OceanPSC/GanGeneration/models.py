@@ -141,8 +141,9 @@ def define_discriminator(n_blocks, input_shape=[4,4,1]):
     model_list.append(models)
   return model_list
  
-def add_generator_block(old_model):
-  
+
+
+def add_generator_block(old_model,i):
 
   # get the end of the last block
   block_end = old_model.layers[-2].output
@@ -155,7 +156,7 @@ def add_generator_block(old_model):
 
   g = eq_conv2d(128, 3)(g)
   g = PixelNormalization()(g)
-  g = layers.LeakyReLU(alpha=0.2)(g)
+  g = layers.LeakyReLU(alpha=0.2,name=f"inter_out_{i}")(g)
 
   # add new output layer
   out_image = eq_conv2d(1, 1)(g)
@@ -172,7 +173,6 @@ def add_generator_block(old_model):
   return [model1, model2]
 
 def define_generator(latent_dim, n_blocks, in_dim=4):
-
 
   model_list = []
   
@@ -204,7 +204,7 @@ def define_generator(latent_dim, n_blocks, in_dim=4):
     # create submodels
   for i in range(1, n_blocks):
     old_model = model_list[i - 1][0]
-    models = add_generator_block(old_model)
+    models = add_generator_block(old_model,i)
     # store model
     model_list.append(models)
   return model_list

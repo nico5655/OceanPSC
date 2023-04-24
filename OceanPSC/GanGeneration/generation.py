@@ -1,15 +1,19 @@
 from .CGAN import CGAN
 from .params import *
 import cv2
+from scipy.ndimage.filters import gaussian_filter
 
 def print_classes():
     for i,n in zip(range(len(class_names)),class_names):
         print(i,n)
 
 class Generation:
-    def __init__(self):
+    def __init__(self,inter_d=2):
         #instiating gan with training=False will auto load latest checkpoint and setup for max depth (i.e. 128x128)
-        self.gan=CGAN(training=False)
+        self.gan=CGAN(training=False,inter_d=inter_d)
+        self.num_candidates=50
+        self.inter_d=inter_d
+        self.overlap_part=1/8
 
     def generate_one_sample(self,label,mean_stds=None):
         """Generate one 128x128 elevation map (in meters) sample of given label (str or int).
@@ -38,15 +42,55 @@ class Generation:
                 for l in range(size):
                     stds[k,l]=vals[labels[k,l]][1]*1000
 
-
-        means2=cv2.resize(np.float32(means),(size*128,size*128))
-        stds2=cv2.resize(np.float32(stds),(size*128,size*128))
-
-        big_map=np.zeros((size*4,size*4,130))
+        lat_size=2**(self.inter_d+2)
+        overlap=max(int(lat_size*self.overlap_part),1)
+        lat_size=lat_size-2*overlap
+        
+        big_map=np.zeros((size*(lat_size),size*(lat_size),128))
         for i in range(size):
             for j in range(size):
-                big_map[i*4:i*4+4,j*4:j*4+4,:]=self.gan(labels[i,j],mstds=(means[i,j],stds[i,j]),output_intermediary=True)
+                if i==0 and j==0:
+                    selected_img=self.gan([labels[i,j]],mstds=(means[i,j],stds[i,j]),output_intermediary=True)
+                else:
+                    potential_imgs=self.gan(self.num_candidates*[labels[i,j]],mstds=(means[i,j],stds[i,j]),output_intermediary=True).numpy()
+                    if i==0:
+                        sample_left=big_map[i*lat_size:i*lat_size+lat_size+overlap,j*lat_size:j*lat_size+overlap]
+                        dist_left=np.sum((potential_imgs[:,overlap:,:overlap]-sample_left)**2,axis=(1,2,3))
+                        dist_tot=dist_left
+                    elif j==0:
+                        sample_up=big_map[i*lat_size:i*lat_size+overlap,j*lat_size:j*lat_size+lat_size+overlap]
+                        dist_up=np.sum((potential_imgs[:,:overlap,overlap:]-sample_up)**2,axis=(1,2,3))
+                        dist_tot=dist_up
+                    else:
+                        if i==size-1:
+                            sample_left=big_map[i*lat_size-overlap:i*lat_size+lat_size,j*lat_size:j*lat_size+overlap]
+                            dist_left=np.sum((potential_imgs[:,:-overlap,:overlap]-sample_left)**2,axis=(1,2,3))
+                        else:
+                            sample_left=big_map[i*lat_size-overlap:i*lat_size+lat_size+overlap,j*lat_size:j*lat_size+overlap]
+                            dist_left=np.sum((potential_imgs[:,:,:overlap]-sample_left)**2,axis=(1,2,3))
+                        if j==size-1:
+                            sample_up=big_map[i*lat_size:i*lat_size+overlap,j*lat_size-overlap:j*lat_size+lat_size]
+                            dist_up=np.sum((potential_imgs[:,:overlap,:-overlap]-sample_up)**2,axis=(1,2,3))
+                        else:
+                            sample_up=big_map[i*lat_size:i*lat_size+overlap,j*lat_size-overlap:j*lat_size+lat_size+overlap]
+                            dist_up=np.sum((potential_imgs[:,:overlap,:]-sample_up)**2,axis=(1,2,3))
+                        dist_tot=dist_up+dist_left
+                    arg=np.argmin(dist_tot)
+                    selected_img=potential_imgs[arg]
+
+                if j==size-1 and i==size-1:
+                    big_map[i*lat_size:i*lat_size+lat_size,j*lat_size:j*lat_size+lat_size]=selected_img[overlap:-overlap,overlap:-overlap]
+                elif j==size-1:
+                    big_map[i*lat_size:i*lat_size+lat_size+overlap,j*lat_size:j*lat_size+lat_size]=selected_img[overlap:,overlap:-overlap]
+                elif i==size-1:
+                    big_map[i*lat_size:i*lat_size+lat_size,j*lat_size:j*lat_size+lat_size+overlap]=selected_img[overlap:-overlap,overlap:]
+                else:
+                    big_map[i*lat_size:i*lat_size+lat_size+overlap,j*lat_size:j*lat_size+lat_size+overlap]=selected_img[overlap:,overlap:]
 
         rslt=self.gan.call_on_intermediary(big_map).numpy()
+        
+        means2=cv2.resize(np.float32(means),(rslt.shape[0],rslt.shape[1]))
+        stds2=cv2.resize(np.float32(stds),(rslt.shape[0],rslt.shape[1]))
+
         vrslt=rslt*stds2+means2
         return vrslt
