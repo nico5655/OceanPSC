@@ -21,8 +21,6 @@ organized_treshold=0.82
 abyssal_tresh=-4600
 deep_tresh=-3600
 intermediate_tresh=-1600
-#convexity
-#we separate by (+) and (-)
 
 #identifiers
 MID_OCEANIC_RIDGE=0
@@ -30,13 +28,11 @@ VERY_ROUGH_SEAFLOOR=1
 ROUGH_SEAFLOOR=2
 ABYSSAL_PLAIN=3
 CONTINENTAL_RISE=4
-LOWER_CONTINENTAL_SLOPE=5
-UPPER_CONTINENTAL_SLOPE=6
-CONTINENTAL_SHELF=7
-SCARPS=8
-LAND=9
-SEAMOUNT=10
-interRsl=None
+CONTINENTAL_SLOPE=5
+CONTINENTAL_SHELF=6
+SCARPS=7
+LAND=8
+SEAMOUNT=9
 
 def clean(cls_map,dist):
     """Perform cleaning via a (2dist+1)x(2dist+1) majority filter"""
@@ -51,7 +47,7 @@ def clean(cls_map,dist):
         max_decider[decider>max_decider]=decider[decider>max_decider]
     return arg_max_decider
     
-def get_sea_classification(slope,roughness,organization,elevation,curvature):
+def get_sea_classification(slope,roughness,organization,elevation):
     """Carte de classification sous-marine du terrain basée sur les indicateurs."""
 
     ###STEP 1: creation of the base classification (using local indicators for each point)
@@ -113,14 +109,11 @@ def get_sea_classification(slope,roughness,organization,elevation,curvature):
     intermediate=(elevation<intermediate_tresh)&(~(abyssal|deep))
     shallow=~(abyssal|intermediate|deep)
 
-    convex=curvature>0
-    concave=~convex
     #classification
     Abyssal_Plain=SMOOTH&(intermediate|deep|abyssal)
     Continental_Shelf=(SMOOTH|ORGANIZED|ROUGH)&shallow
     Continental_Rise=ORGANIZED&(intermediate|deep|abyssal)
-    Upper_Continental_Slope=SLOPING&convex
-    Lower_Continental_Slope=SLOPING&concave
+    Slopes=SLOPING
     Scarps=SCARPED
     Rough_Seafloor=ROUGH&(deep|abyssal)
     Mid_Oceanic_Ridge=(ROUGH&intermediate)|(VERY_ROUGH&(shallow|intermediate))
@@ -131,8 +124,7 @@ def get_sea_classification(slope,roughness,organization,elevation,curvature):
     classes[Abyssal_Plain]=ABYSSAL_PLAIN
     classes[Continental_Shelf]=CONTINENTAL_SHELF
     classes[Continental_Rise]=CONTINENTAL_RISE
-    classes[Upper_Continental_Slope]=UPPER_CONTINENTAL_SLOPE
-    classes[Lower_Continental_Slope]=LOWER_CONTINENTAL_SLOPE
+    classes[Slopes]=CONTINENTAL_SLOPE
     classes[Scarps]=SCARPS
     classes[Rough_Seafloor]=ROUGH_SEAFLOOR
     classes[Mid_Oceanic_Ridge]=MID_OCEANIC_RIDGE
@@ -266,8 +258,7 @@ def get_sea_classification(slope,roughness,organization,elevation,curvature):
 
     def remove_bad_mor(rem):
         """replacing removed mid_oceanic ridge by most likely alternative"""
-        classes[big_categories['MID_OCEANIC_RIDGE'](classes)&(rem)&(~flat)&(convex)]=UPPER_CONTINENTAL_SLOPE
-        classes[big_categories['MID_OCEANIC_RIDGE'](classes)&(rem)&(~flat)&(~convex)]=LOWER_CONTINENTAL_SLOPE
+        classes[big_categories['MID_OCEANIC_RIDGE'](classes)&(rem)&(~flat)]=CONTINENTAL_SLOPE
         classes[big_categories['MID_OCEANIC_RIDGE'](classes)&(rem)&(flat)&(shallow)]=CONTINENTAL_SHELF
         classes[big_categories['MID_OCEANIC_RIDGE'](classes)&(rem)&(flat)&(~shallow)&(disorganized)]=ABYSSAL_PLAIN
         classes[big_categories['MID_OCEANIC_RIDGE'](classes)&(rem)&(flat)&(~shallow)&(~disorganized)]=CONTINENTAL_RISE
@@ -407,6 +398,7 @@ def get_sea_classification(slope,roughness,organization,elevation,curvature):
     marqued=(big_categories['MID_OCEANIC_RIDGE'](classes))
     dmar=consolidate_numbers(marqued)
     sizes=reduce_nums(dmar)
+    dmar=np.int32(dmar)
     deletion=dmar[sizes[dmar]<=250]
     wipe('MID_OCEANIC_RIDGE',dmar,deletion)
 
@@ -478,7 +470,7 @@ def get_sea_classification(slope,roughness,organization,elevation,curvature):
 big_categories={
     'LAND': lambda cla: cla==LAND,
     'CONTINENTAL_SHELF': lambda cla: cla==CONTINENTAL_SHELF,
-    'CONTINENTAL_SLOPE': lambda cla: (cla==LOWER_CONTINENTAL_SLOPE)|(cla==UPPER_CONTINENTAL_SLOPE)|(cla==SCARPS),
+    'CONTINENTAL_SLOPE': lambda cla: (cla==CONTINENTAL_SLOPE)|(cla==SCARPS),
     'CONTINENTAL_RISE': lambda cla: (cla==CONTINENTAL_RISE),
     'ABYSSAL_PLAIN': lambda cla: (cla==ABYSSAL_PLAIN),
     'BIG_ABP': lambda cla: (cla==ABYSSAL_PLAIN)|(cla==CONTINENTAL_RISE),
@@ -487,12 +479,11 @@ big_categories={
 }
 
 def _clm():
-    n_cm= [None]*11
+    n_cm= [None]*10
     n_cm[ABYSSAL_PLAIN]='blue'
     n_cm[CONTINENTAL_SHELF]='yellow'
     n_cm[CONTINENTAL_RISE]='lawngreen'
-    n_cm[UPPER_CONTINENTAL_SLOPE]='orange'
-    n_cm[LOWER_CONTINENTAL_SLOPE]='tab:orange'
+    n_cm[CONTINENTAL_SLOPE]='orange'
     n_cm[SCARPS]='m'
     n_cm[ROUGH_SEAFLOOR]="dodgerblue"
     n_cm[MID_OCEANIC_RIDGE]='r'
@@ -504,6 +495,26 @@ def _clm():
     return mcm
 class_color_map=_clm()
 
+
+def _clm_samples():
+    n_cm= [None]*11
+    n_cm[0]='blue'
+    n_cm[1]='m'
+    n_cm[2]='lawngreen'
+    n_cm[3]='yellow'
+    n_cm[4]='black'
+    n_cm[5]="r"
+    n_cm[6]='orange'
+    n_cm[7]='dodgerblue'
+    n_cm[8]='white'
+    n_cm[9]='white'
+    n_cm[10]='aqua'
+    mcm=c.LinearSegmentedColormap.from_list('class_color_map',n_cm)
+    mcm.set_bad('white')
+    return mcm
+
+class_color_map=_clm()
+samples_color_map=_clm_samples()
 
 filtre=np.zeros((21,21))
 for i in range(21):

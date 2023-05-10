@@ -1,6 +1,7 @@
 from .CGAN import CGAN
 from .params import *
 import cv2
+import tensorflow as tf
 from scipy.ndimage.filters import gaussian_filter
 
 def print_classes():
@@ -87,7 +88,8 @@ class Generation:
                 else:
                     big_map[i*lat_size:i*lat_size+lat_size+overlap,j*lat_size:j*lat_size+lat_size+overlap]=selected_img[overlap:,overlap:]
 
-        rslt=self.gan.call_on_intermediary(big_map).numpy()
+        from .. import operations as op
+        rslt=op.divide_treatment(big_map,lambda data: self.gan.call_on_intermediary(data).numpy(),r=4,out_multiplier=2**(5-self.inter_d),border=32)
         
         means2=cv2.resize(np.float32(means),(rslt.shape[0],rslt.shape[1]))
         stds2=cv2.resize(np.float32(stds),(rslt.shape[0],rslt.shape[1]))
